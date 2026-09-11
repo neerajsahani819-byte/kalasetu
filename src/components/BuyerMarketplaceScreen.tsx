@@ -71,9 +71,10 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
 
   const filteredProducts = products.filter((item) => {
     if (selectedFilter === 'gi' && !item.giTag) return false;
-    if (selectedFilter === 'pottery' && !item.category.includes('मिट्टी') && !item.category.includes('Terracotta')) return false;
-    if (selectedFilter === 'metal' && !item.category.includes('धातु') && !item.category.includes('Metal')) return false;
-    if (selectedFilter === 'textile' && !item.category.includes('वस्त्र') && !item.category.includes('Handloom')) return false;
+    const catLower = (item.category || '').toLowerCase();
+    if (selectedFilter === 'pottery' && !catLower.includes('pottery') && !catLower.includes('terracotta') && !item.category.includes('मिट्टी')) return false;
+    if (selectedFilter === 'metal' && !catLower.includes('metal') && !catLower.includes('dhokra') && !item.category.includes('धातु')) return false;
+    if (selectedFilter === 'textile' && !catLower.includes('textile') && !catLower.includes('handloom') && !catLower.includes('khadi') && !item.category.includes('वस्त्र')) return false;
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       return (
@@ -340,7 +341,7 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
                       </span>
                     )}
 
-                    {item.category.includes('धातु') && (
+                    {((item.category || '').toLowerCase().includes('metal') || item.category?.includes('धातु')) && (
                       <span className="bg-[#FFFFFF]/90 text-[#9C3D25] text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs">
                         ✨ {t('screens.marketplace.filterMetal')}
                       </span>

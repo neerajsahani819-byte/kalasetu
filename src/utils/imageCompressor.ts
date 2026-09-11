@@ -20,13 +20,13 @@ export async function compressAndResizeImage(
   onProgress?: (percent: number, statusText: string) => void
 ): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
-    onProgress?.(10, 'तस्वीर लोड की जा रही है (Loading image)...');
+    onProgress?.(10, 'Loading image...');
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
     img.onload = () => {
-      onProgress?.(30, 'आकार की गणना (Calculating dimensions)...');
+      onProgress?.(30, 'Calculating dimensions...');
       let { width, height } = img;
       const originalDimensions = { width, height };
 
@@ -42,7 +42,7 @@ export async function compressAndResizeImage(
         }
       }
 
-      onProgress?.(50, 'ग्रामीण नेटवर्क हेतु संपीड़न (Optimizing for rural 2G/3G)...');
+      onProgress?.(50, 'Optimizing for rural network (<500KB)...');
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -66,7 +66,7 @@ export async function compressAndResizeImage(
       const getByteLength = (str: string) => Math.round((str.length * 3) / 4);
       let byteLength = getByteLength(dataUrl);
 
-      onProgress?.(70, 'फ़ाइल का आकार 500KB से कम किया जा रहा है...');
+      onProgress?.(70, 'Compressing under 500KB...');
       while (byteLength > MAX_BYTES && quality > 0.4) {
         quality -= 0.1;
         dataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -83,7 +83,7 @@ export async function compressAndResizeImage(
         Math.round(((originalEstimatedBytes - byteLength) / originalEstimatedBytes) * 100)
       );
 
-      onProgress?.(100, 'तैयार! अनुकूलित फ़ोटो सुरक्षित (Optimized & Ready)');
+      onProgress?.(100, 'Optimized & Ready');
 
       resolve({
         dataUrl,

@@ -39,28 +39,44 @@ export function translate(
   params?: Record<string, string | number>
 ): string {
   const targetLang = (translations as any)[lang] ? (lang as SupportedLang) : DEFAULT_LANGUAGE;
-  if (! (translations as any)[lang] && lang !== DEFAULT_LANGUAGE) {
+  if (!(translations as any)[lang] && lang !== DEFAULT_LANGUAGE) {
     console.warn(`[i18n] Language '${lang}' not found, using English`);
   }
 
-  // 1. Try target language
+  // 1. Try target language with direct key
   let text = getNestedTranslation((translations as any)[targetLang], key);
+
+  // 1b. Try target language with alternative alias (screens.* or stripped screens.)
+  if (text === undefined) {
+    if (key.startsWith('screens.')) {
+      text = getNestedTranslation((translations as any)[targetLang], key.replace(/^screens\./, ''));
+    } else {
+      text = getNestedTranslation((translations as any)[targetLang], `screens.${key}`);
+    }
+  }
 
   // 2. Fallback to English if missing in target language
   if (text === undefined) {
     if (targetLang !== 'en') {
-      console.warn(`[i18n] Missing key '${key}' in ${targetLang}, using English fallback`);
+      console.warn(`[i18n] Missing key '${key}' in ${targetLang}`);
     }
     text = getNestedTranslation((translations as any)['en'], key);
+    if (text === undefined) {
+      if (key.startsWith('screens.')) {
+        text = getNestedTranslation((translations as any)['en'], key.replace(/^screens\./, ''));
+      } else {
+        text = getNestedTranslation((translations as any)['en'], `screens.${key}`);
+      }
+    }
   }
 
   // 3. Last resort fallback
   if (text === undefined) {
-    console.warn(`[i18n] Translation key completely missing: '${key}'`);
+    console.warn(`[i18n] Missing key '${key}' in en`);
     return key.split('.').pop() || key;
   }
 
-  // Parameter interpolation e.g. {name} or {count}
+  // Parameter interpolation e.g. {name}, {count}, {km}, {amount}
   if (params) {
     Object.entries(params).forEach(([paramKey, paramVal]) => {
       text = text!.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramVal));

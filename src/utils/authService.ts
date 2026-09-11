@@ -20,49 +20,49 @@ export const PRESET_AVATARS: { id: string; url: string; label: string; role: 'ar
   {
     id: 'avatar-artisan-parvati',
     url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-    label: 'पारंपरिक शिल्पकार • Artisan Elder',
+    label: 'Artisan Elder',
     role: 'artisan',
   },
   {
     id: 'avatar-artisan-weaver',
     url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    label: 'हथकरघा बुनकर • Handloom Weaver',
+    label: 'Handloom Weaver',
     role: 'artisan',
   },
   {
     id: 'avatar-artisan-potter',
     url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-    label: 'माटी शिल्पकार • Terracotta Potter',
+    label: 'Terracotta Potter',
     role: 'artisan',
   },
   {
     id: 'avatar-artisan-brass',
     url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-    label: 'धातु शिल्पी • Metal Craftsman',
+    label: 'Metal Craftsman',
     role: 'artisan',
   },
   {
     id: 'avatar-buyer-urban',
     url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    label: 'कला प्रेमी • Craft Patron',
+    label: 'Craft Patron',
     role: 'buyer',
   },
   {
     id: 'avatar-buyer-designer',
     url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
-    label: 'हस्तशिल्प संग्राहक • Collector',
+    label: 'Collector',
     role: 'buyer',
   },
   {
     id: 'avatar-buyer-curator',
     url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
-    label: 'क्यूरेटर • Art Curator',
+    label: 'Art Curator',
     role: 'buyer',
   },
   {
     id: 'avatar-buyer-student',
     url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=400&q=80',
-    label: 'शिल्प शोधार्थी • Craft Researcher',
+    label: 'Craft Researcher',
     role: 'buyer',
   },
 ];
@@ -78,12 +78,12 @@ const DEFAULT_USERS: UserAccountRecord[] = [
     role: 'artisan',
     authProvider: 'google',
     isVerified: true,
-    joinedDate: '12 जनवरी 2026',
-    bio: 'भारतीय पारंपरिक कला और मिट्टी शिल्पों की संरक्षक',
+    joinedDate: '12 January 2026',
+    bio: 'Patron of traditional Indian terracotta arts',
   },
   {
     id: 'user-parvati',
-    name: 'श्रीमती पार्वती देवी',
+    name: 'Parvati Devi',
     email: 'parvati@kalasetu.org',
     password: 'craft123',
     phone: '+91 98765 43210',
@@ -91,12 +91,12 @@ const DEFAULT_USERS: UserAccountRecord[] = [
     role: 'artisan',
     authProvider: 'phone',
     isVerified: true,
-    joinedDate: '15 अगस्त 2025',
-    bio: 'वरिष्ठ टेराकोटा मूर्तिकार एवं कुम्हार, गोरखपुर, उत्तर प्रदेश (28 वर्ष अनुभव)',
+    joinedDate: '15 August 2025',
+    bio: 'Master terracotta artisan & sculptor (28 yrs exp)',
   },
   {
     id: 'user-raghav',
-    name: 'राघवेंद्र शर्मा (Raghav)',
+    name: 'Raghav Sharma',
     email: 'raghav.sharma@gmail.com',
     password: 'buyer123',
     phone: '+91 94567 89012',
@@ -104,8 +104,8 @@ const DEFAULT_USERS: UserAccountRecord[] = [
     role: 'buyer',
     authProvider: 'email',
     isVerified: true,
-    joinedDate: '3 फरवरी 2026',
-    bio: 'स्वदेशी हस्तशिल्प और खादी वस्त्रों के नियमित संरक्षक',
+    joinedDate: '3 February 2026',
+    bio: 'Conscious collector & supporter of Indian heritage',
   },
 ];
 
@@ -215,7 +215,7 @@ export function registerNewUser(account: {
     if (existing) {
       return {
         success: false,
-        error: 'यह ईमेल पहले से पंजीकृत है। कृपया लॉगिन करें • This email is already registered. Please login.',
+        error: 'This email is already registered. Please login.',
       };
     }
   }
@@ -225,7 +225,7 @@ export function registerNewUser(account: {
     if (existing) {
       return {
         success: false,
-        error: 'यह मोबाइल नंबर पहले से पंजीकृत है • This phone number is already registered.',
+        error: 'This phone number is already registered.',
       };
     }
   }
@@ -245,12 +245,12 @@ export function registerNewUser(account: {
     role: account.role,
     authProvider: account.authProvider,
     isVerified: true,
-    joinedDate: new Date().toLocaleDateString('hi-IN', {
+    joinedDate: new Date().toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     }),
-    bio: account.bio || (account.role === 'artisan' ? 'शिल्पकार साथी' : 'कला प्रेमी ख़रीदार'),
+    bio: account.bio || (account.role === 'artisan' ? 'Master Artisan' : 'Art Patron'),
     customAvatar: Boolean(account.avatarUrl && account.avatarUrl !== defaultAvatar),
   };
 
@@ -282,14 +282,14 @@ export function loginUserWithEmail(
   if (!user) {
     return {
       success: false,
-      error: 'यह ईमेल पंजीकृत नहीं है। कृपया नया खाता बनाएं • Email not registered. Please sign up.',
+      error: 'Email not registered. Please sign up.',
     };
   }
 
   if (user.password && user.password !== pass) {
     return {
       success: false,
-      error: 'गलत पासवर्ड! कृपया पुनः प्रयास करें • Incorrect password. Please try again.',
+      error: 'Incorrect password. Please try again.',
     };
   }
 
@@ -314,7 +314,7 @@ export function loginUserWithPhone(
     // Auto register phone user
     const cleaned = phone.replace(/\D/g, '').slice(-10);
     const result = registerNewUser({
-      name: nameIfNew?.trim() || (roleIfNew === 'artisan' ? 'शिल्पकार साथी' : 'कला-प्रेमी ख़रीदार'),
+      name: nameIfNew?.trim() || (roleIfNew === 'artisan' ? 'Master Artisan' : 'Art Patron'),
       phone: `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`,
       role: roleIfNew,
       authProvider: 'phone',
@@ -351,7 +351,7 @@ export function loginUserWithGoogle(
         month: 'long',
         year: 'numeric',
       }),
-      bio: 'Google सत्यापित खाता • Google Verified',
+      bio: 'Google Verified Account',
       customAvatar: true,
     };
     users.push(newUser);
@@ -394,7 +394,7 @@ export async function signInWithFirebaseGoogle(
         month: 'long',
         year: 'numeric',
       }),
-      bio: 'Google सत्यापित खाता • Google Verified Account',
+      bio: 'Google Verified Account',
     };
 
     // Save to Firestore collection 'users'
@@ -475,16 +475,16 @@ export async function firebaseSendPasswordReset(
     await sendPasswordResetEmail(auth, email.trim());
     return {
       success: true,
-      message: 'पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है • Password reset link sent to your email!',
+      message: 'Password reset link sent to your email!',
     };
   } catch (err: any) {
     console.warn('[Firebase Auth] Password reset error:', err);
     return {
       success: false,
-      message: 'ईमेल नहीं भेजा जा सका • Could not send reset email',
+      message: 'Could not send reset email',
       error:
         err?.code === 'auth/user-not-found'
-          ? 'यह ईमेल पंजीकृत नहीं है • Email not registered'
+          ? 'Email not registered'
           : err?.message || 'Error sending password reset email',
     };
   }
@@ -500,7 +500,7 @@ export async function firebaseSignUpWithEmail({
   email,
   password,
   role,
-  language = 'hi',
+  language = 'en',
   avatarUrl,
 }: {
   name: string;
@@ -535,7 +535,7 @@ export async function firebaseSignUpWithEmail({
       location: null,
       hasCompletedOnboarding: false,
       createdAt: new Date().toISOString(),
-      joinedDate: new Date().toLocaleDateString('hi-IN', {
+      joinedDate: new Date().toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -588,10 +588,10 @@ export async function firebaseSignUpWithEmail({
       success: false,
       error:
         err.code === 'auth/email-already-in-use'
-          ? 'यह ईमेल पहले से पंजीकृत है • Email already registered'
+          ? 'Email already registered'
           : err.code === 'auth/weak-password'
-          ? 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए • Password must be at least 6 characters'
-          : err?.message || 'खाता बनाने में त्रुटि • Sign up failed',
+          ? 'Password must be at least 6 characters'
+          : err?.message || 'Sign up failed',
     };
   }
 }
@@ -630,10 +630,10 @@ export async function firebaseLoginWithEmail(
       role,
       avatarUrl: avatar,
       avatar,
-      language: data?.language || 'hi',
+      language: data?.language || 'en',
       authProvider: 'email',
       isVerified: true,
-      joinedDate: data?.joinedDate || new Date().toLocaleDateString('hi-IN'),
+      joinedDate: data?.joinedDate || new Date().toLocaleDateString('en-IN'),
       hasCompletedOnboarding: data?.hasCompletedOnboarding ?? true,
     };
 
@@ -653,8 +653,8 @@ export async function firebaseLoginWithEmail(
         err.code === 'auth/wrong-password' ||
         err.code === 'auth/user-not-found' ||
         err.code === 'auth/invalid-email'
-          ? 'गलत ईमेल या पासवर्ड • Invalid email or password'
-          : err?.message || 'लॉगिन असफल • Login failed',
+          ? 'Invalid email or password'
+          : err?.message || 'Login failed',
     };
   }
 }

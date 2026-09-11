@@ -116,7 +116,7 @@ export default function App() {
           role: userRole || 'artisan',
           authProvider: 'google',
           isVerified: true,
-          joinedDate: new Date().toLocaleDateString('hi-IN'),
+          joinedDate: new Date().toLocaleDateString('en-IN'),
         };
         setCurrentUser(authUserObj);
 
