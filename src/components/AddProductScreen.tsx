@@ -524,6 +524,34 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
             </div>
           )}
 
+          {/* Always Visible Text Description Fallback (Section 8) */}
+          <div className="w-full text-left space-y-1.5">
+            <label
+              htmlFor="textarea-voice-transcript"
+              className="block text-xs font-bold text-[#201A18] flex items-center justify-between"
+            >
+              <span>{voiceTranscript ? t('screens.addProduct.heard') : 'Or type your description:'}</span>
+              {voiceTranscript && (
+                <span className="text-[10px] text-[#2D5A43] font-semibold bg-[#E2ECE6] px-2 py-0.5 rounded-full">
+                  Editable text
+                </span>
+              )}
+            </label>
+            <textarea
+              id="textarea-voice-transcript"
+              value={voiceTranscript}
+              placeholder="Or type your description: mention craft type, materials used, making time in hours..."
+              onChange={(e) => {
+                setVoiceTranscript(e.target.value);
+                if (e.target.value.trim()) {
+                  setHasRecordedVoice(true);
+                }
+              }}
+              rows={3}
+              className="w-full text-xs p-3 rounded-xl bg-white border-2 border-[#E3D5C5] focus:outline-none focus:border-[#2D5A43] text-[#201A18] leading-relaxed resize-y placeholder:text-[#8A726C]"
+            />
+          </div>
+
           <div className="bg-[#F8EBE6] border border-[#ddc0ba] rounded-2xl p-3.5 space-y-3">
             <div className="flex items-center justify-center gap-1.5 h-8">
               {[8, 18, 28, 14, 24, 30, 20, 16, 26, 12, 22, 10].map((height, i) => (
@@ -577,30 +605,6 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                 </button>
               </div>
             )}
-
-            {/* Transcript Preview / Editable Input */}
-            <div className="mt-3 pt-3 border-t border-[#E3D5C5]/60">
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  htmlFor="textarea-voice-transcript"
-                  className="block text-[11px] font-semibold text-[#5E534D]"
-                >
-                  {t('screens.addProduct.heard')}
-                </label>
-              </div>
-              <textarea
-                id="textarea-voice-transcript"
-                value={voiceTranscript}
-                onChange={(e) => {
-                  setVoiceTranscript(e.target.value);
-                  if (e.target.value.trim()) {
-                    setHasRecordedVoice(true);
-                  }
-                }}
-                rows={3}
-                className="w-full text-xs p-2.5 rounded-xl bg-white border border-[#E3D5C5] focus:outline-none focus:border-[#2D5A43] text-[#201A18] leading-relaxed resize-y"
-              />
-            </div>
           </div>
         </section>
 

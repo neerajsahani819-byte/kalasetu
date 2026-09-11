@@ -579,9 +579,9 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                       <span>{prod.status === 'live' ? 'Live' : 'Review'}</span>
                     </div>
 
-                    {prod.giTag && (
-                      <div className="absolute top-2.5 right-2.5 bg-[#FAF6F0] text-[#9C3D25] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#E3D5C5]">
-                        GI TAG
+                    {prod.verifiedSeller !== false && (
+                      <div className="absolute top-2.5 right-2.5 bg-[#E2ECE6] text-[#2D5A43] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#bceecf]">
+                        ✅ Verified
                       </div>
                     )}
 

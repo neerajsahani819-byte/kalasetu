@@ -13,13 +13,16 @@ export type ProductStatus = 'live' | 'in_review' | 'order_pending' | 'draft';
 export interface CraftProduct {
   id: string;
   title: string;
+  titleLocal?: string;
   titleEnglish?: string;
   category: string;
   categoryEnglish?: string;
   description: string;
   descriptionEnglish?: string;
   craftHours?: number;
-  materials?: string;
+  laborHours?: number;
+  materialCost?: number;
+  materials?: string | string[];
   materialsEnglish?: string;
   suggestedPrice: number;
   price?: number; // Normalized price for Firestore compatibility
@@ -35,14 +38,21 @@ export interface CraftProduct {
   artisanAvatar?: string;
   artisanRegion?: string;
   artisanExperience?: string;
-  giTag?: boolean;
-  giTagName?: string;
+  village?: string;
+  district?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+  coordinates?: { lat: number; lng: number };
+  distanceKm?: number;
+  verifiedSeller?: boolean;
   isVerified?: boolean;
   viewsCount?: number;
   isFairTrade?: boolean;
   createdAt?: string;
   directEarnings?: number;
   voiceTranscript?: string;
+  tags?: string[];
 }
 
 export interface UserLocation {
@@ -69,8 +79,7 @@ export interface NearbyArtisanSummary {
   craftHindi: string;
   region: string;
   avatarUrl: string;
-  giTagProtected: boolean;
-  giTagName?: string;
+  isVerified?: boolean;
   experienceYears: number;
   coordinates: { lat: number; lng: number };
   distanceKm?: number;
@@ -87,8 +96,7 @@ export interface ArtisanProfileData {
   experienceYears: number;
   generation: string;
   avatarUrl: string;
-  giTagProtected: boolean;
-  giTagName: string;
+  isVerified?: boolean;
   coordinates?: { lat: number; lng: number };
   distanceKm?: number;
   award: {

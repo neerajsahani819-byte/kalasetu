@@ -16,7 +16,7 @@ import { CraftProduct, AuthUser, FirestoreUser, FirestoreMessage, UserAccountRec
 import { mockCraftProducts } from '../data/mockData';
 import { getRegisteredUsers } from '../utils/authService';
 
-const MIGRATION_KEY = 'kalasetu_firestore_migrated_v5';
+const MIGRATION_KEY = 'kalasetu_firestore_migrated_v7';
 const PRODUCTS_CACHE_KEY = 'kalasetu_firestore_products_cache';
 const MESSAGES_CACHE_KEY = 'kalasetu_firestore_messages_cache';
 const ORDERS_CACHE_KEY = 'kalasetu_firestore_orders_cache';
@@ -28,47 +28,61 @@ export const DEMO_SEED_ACCOUNTS: FirestoreUser[] = [
     name: 'Vaishu Kalkuda',
     role: 'artisan',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    language: 'hi',
+    language: 'te',
     phone: '+91 98123 45678',
     authProvider: 'google',
     isVerified: true,
-    joinedDate: '12 जनवरी 2026',
-    bio: 'भारतीय पारंपरिक कला और मिट्टी शिल्पों की संरक्षक • Artisan',
+    joinedDate: '12 January 2026',
+    bio: 'Rural craft patron & traditional terracotta artisan • Medchal',
+    location: {
+      lat: 17.6296,
+      lng: 78.4822,
+      city: 'Medchal',
+      state: 'Telangana',
+    },
   },
   {
     id: 'user-parvati',
     email: 'parvati@kalasetu.org',
-    name: 'श्रीमती पार्वती देवी',
+    name: 'Lakshmi Devi (Master Artisan)',
     role: 'artisan',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-    language: 'hi',
+    language: 'te',
     phone: '+91 98765 43210',
     authProvider: 'email',
     isVerified: true,
-    joinedDate: '15 अगस्त 2025',
-    bio: 'वरिष्ठ टेराकोटा मूर्तिकार एवं कुम्हार, गोरखपुर, उत्तर प्रदेश (28 वर्ष अनुभव) • Artisan',
+    joinedDate: '15 August 2025',
+    bio: 'Master Handloom & Terracotta Artisan, Shamirpet, Telangana (21 yrs exp)',
+    location: {
+      lat: 17.5947,
+      lng: 78.5765,
+      city: 'Shamirpet',
+      state: 'Telangana',
+    },
   },
   {
     id: 'user-raghav',
     email: 'raghav.sharma@gmail.com',
-    name: 'राघवेंद्र शर्मा (Raghav)',
+    name: 'Raghavendra Sharma',
     role: 'buyer',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    language: 'hi',
+    language: 'en',
     phone: '+91 94567 89012',
     authProvider: 'email',
     isVerified: true,
-    joinedDate: '3 फरवरी 2026',
-    bio: 'स्वदेशी हस्तशिल्प और खादी वस्त्रों के नियमित संरक्षक • Buyer',
+    joinedDate: '3 February 2026',
+    bio: 'Handloom & authentic Indian craft enthusiast • Buyer',
+    location: {
+      lat: 17.6296,
+      lng: 78.4822,
+      city: 'Medchal',
+      state: 'Telangana',
+    },
   },
 ];
 
 /**
  * Guarantees that the multi-user demo accounts exist in Firestore 'users' collection
- * with their exact required roles:
- * - vaishukalkuda@gmail.com (role: artisan)
- * - parvati@kalasetu.org (role: artisan)
- * - raghav.sharma@gmail.com (role: buyer)
  */
 export async function ensureDemoUsersInFirestore(): Promise<void> {
   try {
@@ -83,7 +97,6 @@ export async function ensureDemoUsersInFirestore(): Promise<void> {
 
 /**
  * One-time and runtime cleanup that identifies and deletes duplicate product documents in Firestore
- * (groups by title + imageUrl per artisan, keeps the oldest).
  */
 export async function cleanupDuplicateProducts(targetArtisanId?: string): Promise<number> {
   let deletedCount = 0;
@@ -142,175 +155,139 @@ export async function cleanupDuplicateProducts(targetArtisanId?: string): Promis
     // ignore
   }
 
-  console.log(`[Cleanup] Deleted ${deletedCount} duplicate products`);
   return deletedCount;
 }
 
 /**
- * Migrates localStorage data (products, users, messages) to Firestore collections
- * with the exact required schema:
- * - users (id, email, name, role, avatar, language)
- * - products (id, artisanId, title, description, price, imageUrl, createdAt)
- * - messages (id, senderId, recipientId, text, timestamp)
+ * Complete Migration and Fresh Seed Workflow for Medchal + 20 km local rural artisans.
  */
 export async function runFirestoreMigration(): Promise<void> {
-  // Always guarantee demo accounts exist in Firestore
-  ensureDemoUsersInFirestore().catch(() => {});
-  // Run duplicate cleanup
-  cleanupDuplicateProducts().catch(() => {});
-
   try {
     const alreadyMigrated = localStorage.getItem(MIGRATION_KEY);
     if (alreadyMigrated === 'true') {
+      ensureDemoUsersInFirestore().catch(() => {});
       return;
     }
 
     console.log('[Firestore] Running data migration to Firestore...');
 
-    // 1. Migrate Products
+    // === SECTION 1: DELETE ALL EXISTING SEED DATA ===
+    // 1. Delete every product in 'products' in batches of 500
     const productsSnap = await getDocs(collection(db, 'products')).catch(() => null);
-    if (!productsSnap || productsSnap.empty) {
-      console.log('[Firestore] Seeding products collection with initial catalog...');
-      const productBatch = writeBatch(db);
-      const existingTitles = new Set<string>();
-
-      for (const p of mockCraftProducts) {
-        const artisanId = p.artisanId || 'artisan-demo-01';
-        const titleKey = `${artisanId}_${(p.title || '').trim().toLowerCase()}`;
-
-        // Check if product with same title already exists for that artisan
-        if (existingTitles.has(titleKey)) {
-          continue;
-        }
-        existingTitles.add(titleKey);
-
-        // Generate deterministic document ID based on hash of title + artisanId
-        let hash = 0;
-        for (let i = 0; i < titleKey.length; i++) {
-          hash = (hash << 5) - hash + titleKey.charCodeAt(i);
-          hash |= 0;
-        }
-        const docId = p.id || `prod_${artisanId.slice(0, 10)}_${Math.abs(hash)}`;
-
-        const productDoc = {
-          id: docId,
-          artisanId: artisanId,
-          title: p.title,
-          description: p.description,
-          price: p.suggestedPrice || 0,
-          imageUrl: p.images?.[0] || '',
-          createdAt: p.createdAt || new Date().toISOString(),
-          // Retain full properties so existing UI components remain 100% compatible
-          suggestedPrice: p.suggestedPrice || 0,
-          titleEnglish: p.titleEnglish || p.title,
-          category: p.category,
-          categoryEnglish: p.categoryEnglish || p.category,
-          descriptionEnglish: p.descriptionEnglish || p.description,
-          craftHours: p.craftHours || 10,
-          materials: p.materials || '',
-          materialsEnglish: p.materialsEnglish || '',
-          artisanCut: p.artisanCut || Math.round((p.suggestedPrice || 0) * 0.85),
-          packagingCut: p.packagingCut || 0,
-          status: p.status || 'live',
-          images: p.images || [],
-          artisanName: p.artisanName || 'पार्वती देवी',
-          artisanAvatar: p.artisanAvatar || '',
-          artisanRegion: p.artisanRegion || 'उत्तर प्रदेश',
-          artisanExperience: p.artisanExperience || '20 वर्ष',
-          giTag: p.giTag !== false,
-          giTagName: p.giTagName || 'हस्तशिल्प प्रमाणन',
-          isVerified: p.isVerified !== false,
-          viewsCount: p.viewsCount || 1,
-          isFairTrade: p.isFairTrade !== false,
-          audioStoryUrl: p.audioStoryUrl || '',
-          audioDuration: p.audioDuration || '0:35',
-        };
-        productBatch.set(doc(db, 'products', docId), productDoc, { merge: true });
+    if (productsSnap && !productsSnap.empty) {
+      const docs = productsSnap.docs;
+      let totalDeleted = 0;
+      for (let i = 0; i < docs.length; i += 500) {
+        const batch = writeBatch(db);
+        const chunk = docs.slice(i, i + 500);
+        chunk.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+        totalDeleted += chunk.length;
       }
-      await productBatch.commit();
-      console.log(`[Firestore] Seeded ${mockCraftProducts.length} products successfully!`);
+      console.log(`[Cleanup] Deleted ${totalDeleted} products`);
     }
 
-    // 2. Migrate Users
+    // 2. Clear users in 'users' collection EXCEPT current logged in user and seed accounts
     const usersSnap = await getDocs(collection(db, 'users')).catch(() => null);
-    if (!usersSnap || usersSnap.empty) {
-      console.log('[Firestore] Seeding users collection with default accounts...');
+    if (usersSnap && !usersSnap.empty) {
+      const keepIds = new Set(['user-vaishu', 'user-parvati', 'user-raghav']);
+      const keepEmails = new Set(['vaishukalkuda@gmail.com', 'parvati@kalasetu.org', 'raghav.sharma@gmail.com']);
+      let currentUserId: string | null = null;
+      try {
+        const stored = localStorage.getItem('kalasetu_auth_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.id) currentUserId = parsed.id;
+        }
+      } catch {}
+
       const userBatch = writeBatch(db);
-      const localUsers = getRegisteredUsers();
-      for (const u of localUsers) {
-        const userDoc: FirestoreUser = {
-          id: u.id,
-          email: u.email || `${u.id}@kalasetu.org`,
-          name: u.name,
-          role: u.role,
-          avatar: u.avatarUrl || u.avatar || '',
-          language: u.language || 'hi',
-          phone: u.phone || '',
-          authProvider: u.authProvider,
-          isVerified: u.isVerified,
-          joinedDate: u.joinedDate,
-          bio: u.bio,
-        };
-        userBatch.set(doc(db, 'users', u.id), userDoc, { merge: true });
+      let usersDeleted = 0;
+      usersSnap.forEach((uDoc) => {
+        const data = uDoc.data();
+        const isKeep = keepIds.has(uDoc.id) ||
+                       (data.email && keepEmails.has(data.email.toLowerCase())) ||
+                       (currentUserId && uDoc.id === currentUserId);
+        if (!isKeep) {
+          userBatch.delete(uDoc.ref);
+          usersDeleted++;
+        }
+      });
+      if (usersDeleted > 0) {
+        await userBatch.commit();
+        console.log(`[Cleanup] Deleted ${usersDeleted} demo users`);
       }
-      await userBatch.commit();
-      console.log(`[Firestore] Seeded ${localUsers.length} users successfully!`);
     }
 
-    // 3. Migrate initial Messages
+    // 3. Clear 'messages' collection (old chat threads)
     const messagesSnap = await getDocs(collection(db, 'messages')).catch(() => null);
-    if (!messagesSnap || messagesSnap.empty) {
-      console.log('[Firestore] Seeding initial messages collection...');
-      const msgBatch = writeBatch(db);
-      const initialMessages: FirestoreMessage[] = [
-        {
-          id: 'msg-welcome-1',
-          senderId: 'user-parvati',
-          recipientId: 'buyer-all',
-          text: 'नमस्ते! मैं पार्वती देवी हूँ। क्या आप हमारे पारंपरिक हस्तशिल्प और माटी कला के बारे में कुछ जानना चाहते हैं?',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          senderName: 'पार्वती देवी',
-          senderRole: 'artisan',
-          productTitle: 'हस्तनिर्मित नक्काशीदार सुराही',
-          time: '10:14 AM',
-        },
-      ];
-      for (const m of initialMessages) {
-        msgBatch.set(doc(db, 'messages', m.id), m, { merge: true });
+    if (messagesSnap && !messagesSnap.empty) {
+      const msgDocs = messagesSnap.docs;
+      for (let i = 0; i < msgDocs.length; i += 500) {
+        const batch = writeBatch(db);
+        const chunk = msgDocs.slice(i, i + 500);
+        chunk.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
       }
-      await msgBatch.commit();
-      console.log('[Firestore] Seeded initial messages successfully!');
     }
 
-    // 4. Seed initial Orders if empty
-    const ordersSnap = await getDocs(collection(db, 'orders')).catch(() => null);
-    if (!ordersSnap || ordersSnap.empty) {
-      console.log('[Firestore] Seeding initial demo orders collection...');
-      const orderBatch = writeBatch(db);
-      const initialOrders: MarketplaceOrder[] = [
-        {
-          orderId: 'ORD-9821-KALA',
-          buyerId: 'user-rohit',
-          buyerName: 'रोहित वर्मा (Buyer)',
-          artisanId: 'user-parvati',
-          artisanName: 'पार्वती देवी',
-          productId: 'craft-1',
-          productTitle: 'हस्तनिर्मित नक्काशीदार सुराही',
-          productImageUrl: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80',
-          amount: 850,
-          status: 'paid',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          paymentMethod: 'demo',
-          orderType: 'purchase',
-          deliveryEstimate: '3-5 business days',
-        },
-      ];
-      for (const ord of initialOrders) {
-        orderBatch.set(doc(db, 'orders', ord.orderId), ord, { merge: true });
-      }
-      await orderBatch.commit();
-      console.log('[Firestore] Seeded initial orders successfully!');
+    // Clear local caches
+    try {
+      localStorage.removeItem(PRODUCTS_CACHE_KEY);
+      localStorage.removeItem(MESSAGES_CACHE_KEY);
+      localStorage.removeItem(ORDERS_CACHE_KEY);
+    } catch {}
+
+    console.log('[Migration] Cleared old data');
+    console.log('[Migration] Seeding fresh local artisan data');
+
+    // === SECTION 2: RESEED ONLY MEDCHAL + 20 KM RADIUS ===
+    // 1. Seed Products
+    const productBatch = writeBatch(db);
+    for (const p of mockCraftProducts) {
+      const docId = p.id;
+      const productDoc: CraftProduct = {
+        ...p,
+        id: docId,
+        price: p.price || p.suggestedPrice,
+        suggestedPrice: p.suggestedPrice || p.price,
+        imageUrl: p.imageUrl || p.images?.[0] || '',
+        verifiedSeller: true,
+        isVerified: true,
+        isFairTrade: true,
+        status: p.status || 'live',
+        district: p.district || 'Medchal-Malkajgiri',
+        state: p.state || 'Telangana',
+        coordinates: p.coordinates || { lat: p.latitude || 17.6296, lng: p.longitude || 78.4822 },
+        createdAt: p.createdAt || new Date().toISOString(),
+      };
+      productBatch.set(doc(db, 'products', docId), productDoc, { merge: true });
     }
+    await productBatch.commit();
+    console.log(`[Firestore] Seeded ${mockCraftProducts.length} local Medchal products successfully!`);
+
+    // 2. Ensure Demo Users
+    await ensureDemoUsersInFirestore();
+
+    // 3. Seed welcome messages
+    const welcomeBatch = writeBatch(db);
+    const initialMessages: FirestoreMessage[] = [
+      {
+        id: 'msg-welcome-medchal',
+        senderId: 'artisan-srinivas-medchal',
+        recipientId: 'buyer-all',
+        text: 'నమస్కారం! మేడ్చల్ చేతివృత్తుల మార్కెట్‌కు స్వాగతం. మీకు ఏవైనా సాంప్రదాయ మట్టి కుండలు లేదా వస్త్రాల వివరాలు కావాలా?',
+        timestamp: new Date().toISOString(),
+        senderName: 'Srinivas Yadav (Medchal Potter)',
+        senderRole: 'artisan',
+        productTitle: 'Hand-thrown clay water pot (matka)',
+        time: '10:00 AM',
+      },
+    ];
+    for (const m of initialMessages) {
+      welcomeBatch.set(doc(db, 'messages', m.id), m, { merge: true });
+    }
+    await welcomeBatch.commit();
 
     localStorage.setItem(MIGRATION_KEY, 'true');
     console.log('[Firestore] All data migration completed successfully!');
@@ -445,8 +422,7 @@ export async function createProductInFirestore(product: CraftProduct): Promise<C
     artisanAvatar: finalProduct.artisanAvatar,
     artisanRegion: finalProduct.artisanRegion,
     artisanExperience: finalProduct.artisanExperience,
-    giTag: finalProduct.giTag !== false,
-    giTagName: finalProduct.giTagName,
+    verifiedSeller: finalProduct.verifiedSeller !== false,
     isVerified: finalProduct.isVerified !== false,
     viewsCount: finalProduct.viewsCount || 1,
     isFairTrade: finalProduct.isFairTrade !== false,

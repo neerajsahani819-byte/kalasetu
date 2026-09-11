@@ -163,7 +163,7 @@ export const ArtisanProfileScreen: React.FC<ArtisanProfileScreenProps> = ({
           <div className="h-24 bg-gradient-to-r from-[#9C3D25] via-[#C2593F] to-[#2D5A43] relative p-3">
             <div className="inline-flex items-center gap-1.5 bg-white/95 text-[#2D5A43] text-xs font-bold px-3 py-1 rounded-full shadow-xs">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#2D5A43]" />
-              <span>{artisan.giTagName}</span>
+              <span>✅ Verified Artisan</span>
             </div>
           </div>
 
@@ -482,11 +482,9 @@ export const ArtisanProfileScreen: React.FC<ArtisanProfileScreenProps> = ({
                           alt={item.title}
                           className="w-full h-full object-cover"
                         />
-                        {item.giTag && (
-                          <span className="absolute top-2 left-2 bg-[#FEF3C7] text-[#7B5500] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#E5A93C]">
-                            GI
-                          </span>
-                        )}
+                        <span className="absolute top-2 left-2 bg-[#E2ECE6] text-[#2D5A43] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#bceecf]">
+                          ✅ Verified
+                        </span>
                       </div>
 
                       <div className="p-2.5 space-y-1">

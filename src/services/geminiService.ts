@@ -27,8 +27,8 @@ transcript. Return ONLY valid JSON matching this shape exactly:
   "category": "One of: Pottery, Textiles, Woodcraft, Metalwork, Jewelry, Painting, Bamboo Craft, Leather, Stone Carving, Other",
   "materials": ["specific materials from photo + transcript"],
   "laborHours": number,
-  "suggestedPrice": number in INR = (laborHours * 150) + materialCost + 20% markup,
-  "priceExplanation": "One plain sentence in artisan's language showing calculation",
+  "suggestedPrice": number in INR = (laborHours * 80) + materialCost + 10% markup,
+  "priceExplanation": "One plain sentence in artisan's language showing calculation: (laborHours × ₹80) + materialCost + 10% fair margin",
   "tags": ["5 SEO tags in artisan's language"],
   "confidence": number 0.0-1.0
 }

@@ -197,9 +197,9 @@ export const AiListingPreviewScreen: React.FC<AiListingPreviewScreenProps> = ({
             />
           </div>
 
-          <div className="absolute top-3 right-3 bg-white/95 text-[#2D5A43] text-xs font-bold px-3 py-1 rounded-full border border-[#2D5A43]/30 shadow-sm flex items-center gap-1.5">
+          <div className="absolute top-3 right-3 bg-[#E2ECE6]/95 text-[#2D5A43] text-xs font-bold px-3 py-1 rounded-full border border-[#bceecf] shadow-sm flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2D5A43]" />
-            <span>{t('screens.preview.giTag')}</span>
+            <span>Verified Seller</span>
           </div>
 
           <div className="absolute bottom-3 left-3 bg-black/75 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
