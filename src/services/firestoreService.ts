@@ -431,7 +431,7 @@ export async function createProductInFirestore(product: CraftProduct): Promise<C
   };
 
   // Persist to Firestore
-  await setDoc(doc(db, 'products', finalProduct.id), firestoreDoc, { merge: true });
+  await setDoc(doc(db, 'products', finalProduct.id), cleanFirestoreData(firestoreDoc), { merge: true });
 
   // Update local cache
   try {
@@ -465,7 +465,7 @@ export async function saveUserToFirestore(user: AuthUser | FirestoreUser): Promi
     hasCompletedOnboarding: user.hasCompletedOnboarding ?? true,
   };
 
-  await setDoc(doc(db, 'users', user.id), userDoc, { merge: true });
+  await setDoc(doc(db, 'users', user.id), cleanFirestoreData(userDoc), { merge: true });
 }
 
 /**
@@ -477,7 +477,7 @@ export async function updateUserLocationInFirestore(
 ): Promise<void> {
   try {
     const docRef = doc(db, 'users', userId);
-    await setDoc(docRef, { location }, { merge: true });
+    await setDoc(docRef, { location: cleanFirestoreData(location) }, { merge: true });
     console.log(`[Firestore] User location updated for ${userId}:`, location.city);
   } catch (error) {
     console.warn('[Firestore] Error saving user location to Firestore:', error);
@@ -583,6 +583,30 @@ export async function sendMessageToFirestore(message: {
 }
 
 /**
+ * Recursively strips all properties that have `undefined` values from an object,
+ * ensuring Firestore setDoc/updateDoc never fails with 'Unsupported field value: undefined'.
+ */
+export function cleanFirestoreData<T extends Record<string, any>>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => (item !== null && typeof item === 'object' ? cleanFirestoreData(item) : item)) as unknown as T;
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+        cleaned[key] = cleanFirestoreData(value);
+      } else {
+        cleaned[key] = value;
+      }
+    }
+  }
+  return cleaned as T;
+}
+
+/**
  * Creates an order in Firestore collection 'orders', sends a notification message to the artisan,
  * and logs to console.
  */
@@ -640,13 +664,27 @@ export async function createOrderInFirestore(orderData: {
     deliveryMode: orderData.deliveryMode || 'ship',
     shippingCost: orderData.shippingCost ?? (orderData.deliveryMode === 'pickup' ? 0 : 40),
     shippingType: orderData.shippingType || (orderData.deliveryMode === 'pickup' ? 'pickup' : 'standard'),
-    pickupAddress: orderData.pickupAddress,
-    deliveryAddress: orderData.deliveryAddress,
   };
+
+  if (orderData.deliveryMode === 'pickup') {
+    orderRecord.pickupAddress = orderData.pickupAddress ? cleanFirestoreData(orderData.pickupAddress) : {
+      artisanName: orderData.artisanName || 'Artisan',
+      village: 'Medchal',
+      district: 'Medchal-Malkajgiri',
+      state: 'Telangana',
+    };
+    orderRecord.shippingCost = 0;
+  } else if (orderData.deliveryMode === 'ship') {
+    if (orderData.deliveryAddress) {
+      orderRecord.deliveryAddress = cleanFirestoreData(orderData.deliveryAddress);
+    }
+  }
+
+  const cleanedFirestorePayload = cleanFirestoreData(orderRecord);
 
   try {
     // Write order to Firestore 'orders' collection
-    await setDoc(doc(db, 'orders', orderRecord.orderId), orderRecord);
+    await setDoc(doc(db, 'orders', orderRecord.orderId), cleanedFirestorePayload);
 
     // Send a Firestore message to the artisan (Part 6)
     let notificationText = `🎉 New support! ${orderRecord.productTitle} — ₹${orderRecord.amount}`;

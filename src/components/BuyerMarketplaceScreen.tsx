@@ -170,7 +170,9 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
             updateUserLocationInFirestore(currentUser.id, loc).catch(() => {});
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn('[Location] Geolocation permission denied or failed:', err?.message || 'Secure origin required');
+          console.log('[Location] Using manual location: Medchal');
           saveBuyerLocation(DEFAULT_BUYER_LOCATION);
           setBuyerLocation(DEFAULT_BUYER_LOCATION);
         });
@@ -180,6 +182,7 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
   }, [currentUser]);
 
   const handleSelectCityPreset = (preset: CityPreset) => {
+    console.log(`[Location] Using manual location: ${preset.name}`);
     const newLoc: UserLocation = {
       lat: preset.lat,
       lng: preset.lng,
@@ -208,7 +211,8 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
       }
       setIsLocationModalOpen(false);
     } catch (err: any) {
-      setLocationError(err?.message || 'Unable to retrieve GPS coordinates. Please select your city from the list below.');
+      console.warn('[Location] Geolocation permission denied or failed:', err?.message);
+      setLocationError("We couldn't get your location automatically. Please select your city:");
     } finally {
       setIsLocating(false);
     }
@@ -935,12 +939,42 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
               </div>
             )}
 
-            {/* Telangana & Medchal Craft Hubs List */}
-            <div className="space-y-2 pt-1">
-              <div className="text-xs font-bold text-[#5E534D]">
-                Select Village / Area:
+            {/* Telangana & Major Cities Dropdown & List */}
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1">
+                <label htmlFor="select-city-dropdown" className="text-xs font-bold text-[#5E534D] block">
+                  Quick Select City / District:
+                </label>
+                <select
+                  id="select-city-dropdown"
+                  value={INDIAN_CITIES_PRESETS.find((p) => p.name === buyerLocation.city)?.id || 'medchal'}
+                  onChange={(e) => {
+                    const found = INDIAN_CITIES_PRESETS.find((p) => p.id === e.target.value);
+                    if (found) handleSelectCityPreset(found);
+                  }}
+                  className="w-full bg-white border border-[#E3D5C5] rounded-xl px-3 py-2 text-xs font-bold text-[#201A18] focus:outline-none focus:ring-2 focus:ring-[#9C3D25]/20 cursor-pointer"
+                >
+                  <optgroup label="📍 Telangana Districts & Craft Hubs">
+                    {INDIAN_CITIES_PRESETS.filter((p) => p.state === 'Telangana').map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.name}, {preset.state}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🏛️ Major Indian Cultural Hubs">
+                    {INDIAN_CITIES_PRESETS.filter((p) => p.state !== 'Telangana').map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.name}, {preset.state}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
               </div>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+
+              <div className="text-xs font-bold text-[#5E534D]">
+                Or Choose from Craft Hubs:
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {INDIAN_CITIES_PRESETS.map((preset) => {
                   const isCurrent = buyerLocation.city === preset.name;
                   return (

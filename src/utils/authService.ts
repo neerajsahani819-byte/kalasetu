@@ -587,7 +587,9 @@ export async function firebaseSignUpWithEmail({
     return {
       success: false,
       error:
-        err.code === 'auth/email-already-in-use'
+        err.code === 'auth/operation-not-allowed'
+          ? 'Email sign-in is currently unavailable. Please contact support or use Google Sign-In.'
+          : err.code === 'auth/email-already-in-use'
           ? 'Email already registered'
           : err.code === 'auth/weak-password'
           ? 'Password must be at least 6 characters'
@@ -649,10 +651,12 @@ export async function firebaseLoginWithEmail(
     return {
       success: false,
       error:
-        err.code === 'auth/invalid-credential' ||
-        err.code === 'auth/wrong-password' ||
-        err.code === 'auth/user-not-found' ||
-        err.code === 'auth/invalid-email'
+        err.code === 'auth/operation-not-allowed'
+          ? 'Email sign-in is currently unavailable. Please contact support or use Google Sign-In.'
+          : err.code === 'auth/invalid-credential' ||
+            err.code === 'auth/wrong-password' ||
+            err.code === 'auth/user-not-found' ||
+            err.code === 'auth/invalid-email'
           ? 'Invalid email or password'
           : err?.message || 'Login failed',
     };

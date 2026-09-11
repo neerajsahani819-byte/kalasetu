@@ -1,54 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Users collection
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if isOwner(userId);
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Products collection (public catalog, artisans and initial seeding can create)
     match /products/{productId} {
       allow read: if true;
-      allow create: if true;
-      allow update, delete: if isAuthenticated() && (resource.data.artisanId == request.auth.uid || isOwner(resource.data.artisanId));
+      allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.artisanId;
     }
-
-    // Messages collection (direct communications)
     match /messages/{messageId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+      allow read, write: if request.auth != null;
     }
-
-    // Orders collection (marketplace checkout & artisan support orders)
     match /orders/{orderId} {
-      // 1. Buyers can create orders
-      allow create: if true;
-
-      // 2. Buyers can read their own orders, Artisans can read orders where artisanId == their uid
-      allow read: if !isAuthenticated() ||
-                     resource.data.buyerId == request.auth.uid ||
-                     resource.data.artisanId == request.auth.uid;
-
-      // 3. Artisans can update order status (paid -> shipped -> delivered)
-      allow update: if !isAuthenticated() ||
-                       resource.data.artisanId == request.auth.uid;
-
-      allow delete: if isAuthenticated() && (
-        resource.data.buyerId == request.auth.uid ||
-        resource.data.artisanId == request.auth.uid
-      );
+      allow read, write: if request.auth != null;
     }
   }
 }
