@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "KalaSetu user account profile for artisans and buyers",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user identifier"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the artisan or buyer"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["artisan", "buyer"],
+          "description": "Role in the marketplace"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Profile picture or avatar image URL"
+        },
+        "language": {
+          "type": "string",
+          "description": "Preferred interface and audio language code"
+        }
+      },
+      "required": ["id", "email", "name", "role", "avatar", "language"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Handicraft product listing created by artisans",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product listing ID"
+        },
+        "artisanId": {
+          "type": "string",
+          "description": "Creator artisan UID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Product title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description and cultural story"
+        },
+        "price": {
+          "type": "number",
+          "description": "Suggested fair-trade retail price in INR"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Main product photo URL stored in Firebase Storage or CDN"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        }
+      },
+      "required": ["id", "artisanId", "title", "description", "price", "imageUrl", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Direct chat message between buyer and artisan",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique message ID"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "UID of the message sender"
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "UID of the recipient"
+        },
+        "text": {
+          "type": "string",
+          "description": "Content of the message"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO or localized time string"
+        }
+      },
+      "required": ["id", "senderId", "recipientId", "text", "timestamp"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Marketplace purchase order or artisan support donation",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Unique order identifier"
+        },
+        "buyerId": {
+          "type": "string",
+          "description": "Buyer user identifier"
+        },
+        "artisanId": {
+          "type": "string",
+          "description": "Artisan recipient identifier"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Purchased craft product ID or support fund ID"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Order or support amount in INR"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["paid", "pending", "delivered"],
+          "description": "Current order payment or fulfillment status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of order creation"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method used (demo)"
+        }
+      },
+      "required": ["orderId", "buyerId", "artisanId", "productId", "amount", "status", "createdAt", "paymentMethod"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Marketplace products collection"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Direct messages collection"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Marketplace orders and support donations collection"
+    }
+  }
+}

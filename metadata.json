@@ -1,0 +1,6 @@
+{
+  "name": "KalaSetu",
+  "description": "Voice-first mobile craft commerce platform for rural and tribal artisans to document, price, and sell authentic handmade crafts.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
