@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Plus, ShoppingBag, User, WifiOff, Wifi, ArrowLeftRight } from 'lucide-react';
+import { Store, Plus, ShoppingBag, User, ArrowLeftRight } from 'lucide-react';
 import { UserRole } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -14,8 +14,6 @@ export type ScreenTab =
 interface BottomNavProps {
   currentTab: ScreenTab;
   onSelectTab: (tab: ScreenTab) => void;
-  isOffline: boolean;
-  onToggleOffline: () => void;
   language?: string;
   userRole: UserRole;
   onToggleRole: () => void;
@@ -24,8 +22,6 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({
   currentTab,
   onSelectTab,
-  isOffline,
-  onToggleOffline,
   userRole,
   onToggleRole,
 }) => {
@@ -112,23 +108,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] mt-0.5 whitespace-nowrap">{t('screens.profile.title')}</span>
         </button>
 
-        {/* Tab 5: Role / Offline Switch */}
+        {/* Tab 5: Role Switch */}
         <button
-          id="nav-tab-offline-toggle"
-          onClick={onToggleOffline}
-          className={`flex-1 flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-            isOffline ? 'text-[#ba1a1a] font-bold' : 'text-[#5E534D]'
-          }`}
-          title={isOffline ? t('common.online') : t('common.offline')}
-          aria-label={isOffline ? t('common.online') : t('common.offline')}
+          id="nav-tab-role-switch"
+          onClick={onToggleRole}
+          className="flex-1 flex flex-col items-center justify-center py-1 rounded-xl transition-all text-[#5E534D] hover:text-[#9C3D25]"
+          title={t('common.switch')}
+          aria-label={t('common.switch')}
         >
-          {isOffline ? (
-            <WifiOff className="w-5 h-5 text-[#ba1a1a] animate-pulse" />
-          ) : (
-            <Wifi className="w-5 h-5 text-[#2D5A43]" />
-          )}
-          <span className="text-[10px] mt-0.5 whitespace-nowrap">
-            {isOffline ? t('common.offline') : t('common.online')}
+          <ArrowLeftRight className="w-5 h-5 text-[#9C3D25]" />
+          <span className="text-[10px] mt-0.5 whitespace-nowrap text-[#9C3D25] font-semibold">
+            {userRole === 'artisan' ? t('common.buyer') : t('common.artisan')}
           </span>
         </button>
       </div>

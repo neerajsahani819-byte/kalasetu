@@ -36,7 +36,6 @@ interface AddProductScreenProps {
     price: number;
     voiceTranscript?: string;
   }) => void;
-  isOffline: boolean;
   language?: string;
 }
 

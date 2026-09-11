@@ -14,7 +14,6 @@ interface OnboardingScreenProps {
   onSelectRole?: (role: UserRole) => void;
   onContinue?: () => void;
   onComplete?: (role: UserRole, language: string) => void;
-  isOffline?: boolean;
   currentUser?: AuthUser | null;
   onOpenAuthModal?: () => void;
 }
@@ -26,7 +25,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onSelectRole,
   onContinue,
   onComplete,
-  isOffline = false,
   currentUser = null,
   onOpenAuthModal,
 }) => {
@@ -136,16 +134,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       )}
 
       {/* Top Status & Help Header */}
-      <div className="max-w-md mx-auto px-4 pt-3 flex items-center justify-between">
-        <div className="inline-flex items-center gap-1.5 bg-[#E2ECE6] text-[#2D5A43] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#2D5A43]/20">
-          <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-amber-600' : 'bg-[#2D5A43] animate-pulse'}`} />
-          <span>{isOffline ? t('common.offline') : t('common.online')}</span>
-        </div>
-
+      <div className="max-w-md mx-auto px-4 pt-3 flex items-center justify-end">
         <button
           id="btn-onboarding-help"
           onClick={handleListenMainGuide}
-          className="inline-flex items-center gap-1.5 bg-[#F4EBE1] text-[#9C3D25] text-xs font-bold px-3 py-1.5 rounded-full border border-[#E3D5C5] hover:bg-[#ebdccf] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 bg-[#F4EBE1] text-[#9C3D25] text-xs font-bold px-3 py-1.5 rounded-full border border-[#E3D5C5] hover:bg-[#ebdccf] transition-colors cursor-pointer shadow-xs"
         >
           <Volume2 className="w-3.5 h-3.5" />
           <span>{t('common.listen')}</span>

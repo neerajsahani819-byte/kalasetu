@@ -11,7 +11,6 @@ import { AiListingPreviewScreen } from './components/AiListingPreviewScreen';
 import { MyShopScreen } from './components/MyShopScreen';
 import { BuyerMarketplaceScreen } from './components/BuyerMarketplaceScreen';
 import { ArtisanProfileScreen } from './components/ArtisanProfileScreen';
-import { OfflineBanner } from './components/OfflineBanner';
 import { BottomNav, ScreenTab } from './components/BottomNav';
 import { ChatModal } from './components/ChatModal';
 import { LanguageSelectorModal } from './components/LanguageSelectorModal';
@@ -41,7 +40,6 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>('artisan');
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
   const [products, setProducts] = useState<CraftProduct[]>(mockCraftProducts);
   const [isProductsLoading, setIsProductsLoading] = useState<boolean>(true);
 
@@ -355,29 +353,6 @@ export default function App() {
     return () => unsubProducts();
   }, []);
 
-  // Online / offline listeners
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const handleToggleOffline = () => {
-    setIsOffline((prev) => {
-      const next = !prev;
-      const speechCode = getSpeechLangCode(selectedLanguage);
-      speakAloud(next ? t('common.offlineNotice') : t('common.onlineNotice'), { lang: speechCode });
-      return next;
-    });
-  };
-
   const handleToggleRole = (forcedRole?: UserRole) => {
     const nextRole: UserRole = forcedRole || (userRole === 'artisan' ? 'buyer' : 'artisan');
     setUserRole(nextRole);
@@ -527,13 +502,6 @@ export default function App() {
   // 4. Authenticated with role -> Main Application Screens
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#201A18] font-sans selection:bg-[#9C3D25]/20 selection:text-[#9C3D25]">
-      {/* App-wide Offline Banner */}
-      <OfflineBanner
-        isOffline={isOffline}
-        onToggleOffline={handleToggleOffline}
-        language={selectedLanguage}
-      />
-
       {/* Screen Render Switch */}
       {currentTab === 'onboarding' && (
         <OnboardingScreen
@@ -542,7 +510,6 @@ export default function App() {
           selectedRole={userRole}
           onSelectRole={(r) => setUserRole(r)}
           onComplete={handleCompleteOnboarding}
-          isOffline={isOffline}
           currentUser={currentUser}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
         />
@@ -579,7 +546,6 @@ export default function App() {
         <AddProductScreen
           onBack={() => setCurrentTab('my-shop')}
           onProceedToPreview={handleProceedToPreview}
-          isOffline={isOffline}
           language={selectedLanguage}
         />
       )}
@@ -688,8 +654,6 @@ export default function App() {
         <BottomNav
           currentTab={currentTab}
           onSelectTab={(tab) => setCurrentTab(tab)}
-          isOffline={isOffline}
-          onToggleOffline={handleToggleOffline}
           language={selectedLanguage}
           userRole={userRole}
           onToggleRole={() => handleToggleRole()}

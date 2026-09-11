@@ -11,7 +11,6 @@ interface AppHeaderProps {
   selectedLanguage?: string;
   onOpenLanguageSelector: () => void;
   onListenGuide?: () => void;
-  isOffline?: boolean;
   currentUser?: AuthUser | null;
   onOpenAuthModal?: () => void;
 }

@@ -80,10 +80,6 @@ export const translations = {
       "artisan": "Artisan",
       "buyer": "Buyer",
       "directFairTrade": "Direct Fair Trade • 100% Direct to Artisan",
-      "offline": "Offline Mode",
-      "online": "Online",
-      "onlineNotice": "Online — real-time cloud sync active",
-      "offlineNotice": "Offline mode active — changes will sync when connected",
       "help": "Help",
       "language": "Language",
       "changeLanguage": "Change Language",
@@ -289,8 +285,7 @@ export const translations = {
       "permissionDenied": "Permission denied.",
       "genericError": "Something went wrong.",
       "cameraPermission": "Camera access is needed",
-      "micPermission": "Microphone access is needed",
-      "offlineMode": "You are offline"
+      "micPermission": "Microphone access is needed"
     },
     "voice": {
       "listening": "Listening...",
@@ -696,10 +691,6 @@ export const translations = {
       "artisan": "कारीगर",
       "buyer": "कला प्रेमी",
       "directFairTrade": "सीधा न्यायसंगत व्यापार • 100% कारीगर को भुगतान",
-      "offline": "ऑफ़लाइन मोड",
-      "online": "ऑनलाइन",
-      "onlineNotice": "ऑनलाइन — रीयल-टाइम क्लाउड सिंक सक्रिय",
-      "offlineNotice": "ऑफ़लाइन मोड सक्रिय — इंटरनेट मिलने पर सिंक होगा",
       "help": "सहायता",
       "language": "भाषा",
       "changeLanguage": "भाषा बदलें",
@@ -905,8 +896,7 @@ export const translations = {
       "permissionDenied": "अनुमति अस्वीकृत।",
       "genericError": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
       "cameraPermission": "शिल्प की फोटो खींचने के लिए कैमरा अनुमति आवश्यक है",
-      "micPermission": "बोलकर विवरण देने के लिए माइक्रोफ़ोन अनुमति आवश्यक है",
-      "offlineMode": "आप ऑफ़लाइन हैं"
+      "micPermission": "बोलकर विवरण देने के लिए माइक्रोफ़ोन अनुमति आवश्यक है"
     },
     "voice": {
       "listening": "सुन रहे हैं...",
@@ -1312,10 +1302,6 @@ export const translations = {
       "artisan": "చేతివృత్తిదారుడు",
       "buyer": "కొనుగోలుదారు",
       "directFairTrade": "ప్రత్యక్ష న్యాయమైన వాణిజ్యం • 100% కళాకారుడికే",
-      "offline": "ఆఫ్‌లైన్ మోడ్",
-      "online": "ఆన్‌లైన్",
-      "onlineNotice": "ఆన్‌లైన్ — రియల్ టైమ్ క్లౌడ్ సింక్ సక్రియం",
-      "offlineNotice": "ఆఫ్‌లైన్ మోడ్ — కనెక్ట్ అయినప్పుడు మార్పులు సమకాలీకరించబడతాయి",
       "help": "సహాయం",
       "language": "భాష",
       "changeLanguage": "భాష మార్చండి",
@@ -1521,8 +1507,7 @@ export const translations = {
       "permissionDenied": "అనుమతి నిరాకరించబడింది.",
       "genericError": "ఏదో తప్పు జరిగింది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
       "cameraPermission": "ఫోటో తీయడానికి కెమెరా అనుమతి అవసరం",
-      "micPermission": "వివరణ రికార్డ్ చేయడానికి మైక్రోఫోన్ అనుమతి అవసరం",
-      "offlineMode": "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు"
+      "micPermission": "వివరణ రికార్డ్ చేయడానికి మైక్రోఫోన్ అనుమతి అవసరం"
     },
     "voice": {
       "listening": "వింటోంది...",
@@ -1928,10 +1913,6 @@ export const translations = {
       "artisan": "கைவினைஞர்",
       "buyer": "வாங்குபவர்",
       "directFairTrade": "நேரடி நியாயமான வர்த்தகம் • 100% கைவினைஞருக்கு",
-      "offline": "ஆஃப்லைன் முறை",
-      "online": "ஆன்லைன்",
-      "onlineNotice": "ஆன்லைன் — நிகழ்நேர கிளவுட் ஒத்திசைவு செயலில் உள்ளது",
-      "offlineNotice": "ஆஃப்லைன் முறை — இணைய இணைப்பு வந்ததும் ஒத்திசைக்கப்படும்",
       "help": "உதவி",
       "language": "மொழி",
       "changeLanguage": "மொழியை மாற்றவும்",
@@ -2137,8 +2118,7 @@ export const translations = {
       "permissionDenied": "அனுமதி மறுக்கப்பட்டது.",
       "genericError": "ஏதோ தவறு நடந்துவிட்டது. மீண்டும் முயற்சிக்கவும்.",
       "cameraPermission": "புகைப்படம் எடுக்க கேமரா அனுமதி தேவை",
-      "micPermission": "விளக்கத்தைப் பதிவு செய்ய மைக்ரோஃபோன் அனுமதி தேவை",
-      "offlineMode": "நீங்கள் ஆஃப்லைனில் உள்ளீர்கள்"
+      "micPermission": "விளக்கத்தைப் பதிவு செய்ய மைக்ரோஃபோன் அனுமதி தேவை"
     },
     "voice": {
       "listening": "கேட்கிறது...",
@@ -2544,10 +2524,6 @@ export const translations = {
       "artisan": "कारागीर",
       "buyer": "ग्राहक",
       "directFairTrade": "थेट रास्त व्यापार • 100% कारागिराला मोबदला",
-      "offline": "ऑफलाईन मोड",
-      "online": "ऑनलाईन",
-      "onlineNotice": "ऑनलाईन — रिअल-टाईम क्लाऊड सिंक सक्रिय",
-      "offlineNotice": "ऑफलाईन मोड — इंटरनेट आल्यावर सिंक होईल",
       "help": "मदत",
       "language": "भाषा",
       "changeLanguage": "भाषा बदला",
@@ -2753,8 +2729,7 @@ export const translations = {
       "permissionDenied": "परवानगी नाकारली.",
       "genericError": "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा.",
       "cameraPermission": "फोटो काढण्यासाठी कॅमेरा परवानगी आवश्यक आहे",
-      "micPermission": "वर्णन रेकॉर्ड करण्यासाठी मायक्रोफोन परवानगी आवश्यक आहे",
-      "offlineMode": "आपण ऑफलाइन आहात"
+      "micPermission": "वर्णन रेकॉर्ड करण्यासाठी मायक्रोफोन परवानगी आवश्यक आहे"
     },
     "voice": {
       "listening": "ऐकत आहे...",
@@ -3160,10 +3135,6 @@ export const translations = {
       "artisan": "କାରିଗର",
       "buyer": "କ୍ରେତା",
       "directFairTrade": "ପ୍ରତ୍ୟକ୍ଷ ନ୍ୟାୟଯୁକ୍ତ ବ୍ୟବସାୟ • 100% କାରିଗରଙ୍କୁ ପ୍ରଦାନ",
-      "offline": "ଅଫଲାଇନ୍ ମୋଡ୍",
-      "online": "ଅନଲାଇନ୍",
-      "onlineNotice": "ଅନଲାଇନ୍ — ରିଅଲ୍ ଟାଇମ୍ କ୍ଲାଉଡ୍ ସିଙ୍କ୍ ସକ୍ରିୟ",
-      "offlineNotice": "ଅଫଲାଇନ୍ ମୋଡ୍ — ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ହେଲେ ସିଙ୍କ୍ ହେବ",
       "help": "ସହାୟତା",
       "language": "ଭାଷା",
       "changeLanguage": "ଭାଷା ବଦଳାନ୍ତୁ",
@@ -3369,8 +3340,7 @@ export const translations = {
       "permissionDenied": "ଅନୁମତି ଅସ୍ୱୀକୃତ।",
       "genericError": "କିଛି ତ୍ରୁଟି ଘଟିଲା। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
       "cameraPermission": "ଫଟୋ ଉଠାଇବା ପାଇଁ କ୍ୟାମେରା ଅନୁମତି ଆବଶ୍ୟକ",
-      "micPermission": "ବର୍ଣ୍ଣନା ରେକର୍ଡ କରିବା ପାଇଁ ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ଆବଶ୍ୟକ",
-      "offlineMode": "ଆପଣ ଅଫଲାଇନରେ ଅଛନ୍ତି"
+      "micPermission": "ବର୍ଣ୍ଣନା ରେକର୍ଡ କରିବା ପାଇଁ ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ଆବଶ୍ୟକ"
     },
     "voice": {
       "listening": "ଶୁଣୁଛି...",
