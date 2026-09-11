@@ -23,40 +23,37 @@ import {
   getDownloadURL,
   FirebaseStorage,
 } from 'firebase/storage';
-import firebaseConfig from '../../firebase-applet-config.json';
-
-// Effective Firebase configuration with environment variable support
-const effectiveConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId,
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+
 // Initialize or reuse Firebase App
-export const app = getApps().length === 0 ? initializeApp({
-  apiKey: effectiveConfig.apiKey,
-  authDomain: effectiveConfig.authDomain,
-  projectId: effectiveConfig.projectId,
-  storageBucket: effectiveConfig.storageBucket,
-  messagingSenderId: effectiveConfig.messagingSenderId,
-  appId: effectiveConfig.appId,
-}) : getApp();
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firestore with offline persistence support
 let firestoreInstance: Firestore;
 try {
-  firestoreInstance = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-    }),
-  }, effectiveConfig.firestoreDatabaseId);
+  firestoreInstance = firestoreDatabaseId
+    ? initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      }, firestoreDatabaseId)
+    : initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
 } catch {
   // If already initialized or if multi-tab fails, get existing instance
-  firestoreInstance = getFirestore(app, effectiveConfig.firestoreDatabaseId);
+  firestoreInstance = firestoreDatabaseId ? getFirestore(app, firestoreDatabaseId) : getFirestore(app);
 }
 
 export const db: Firestore = firestoreInstance;
