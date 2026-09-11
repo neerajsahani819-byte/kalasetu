@@ -278,6 +278,7 @@ export default function App() {
     materials: string;
     price: number;
     voiceTranscript?: string;
+    shippingMode?: 'ship' | 'pickup' | 'both';
   }>({
     photoUrl:
       'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80',
@@ -288,6 +289,7 @@ export default function App() {
     materials: 'प्राकृतिक दोमट माटी व कबीज रंग',
     price: 850,
     voiceTranscript: '',
+    shippingMode: 'both',
   });
 
   // Chat modal state
@@ -432,6 +434,7 @@ export default function App() {
       status: 'live',
       viewsCount: 1,
       verifiedSeller: true,
+      shippingMode: previewProductData.shippingMode || 'both',
       craftHours: previewProductData.hours,
       materials: previewProductData.materials,
       materialsEnglish: previewProductData.materials,

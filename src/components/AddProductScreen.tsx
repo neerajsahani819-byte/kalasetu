@@ -35,6 +35,7 @@ interface AddProductScreenProps {
     materials: string;
     price: number;
     voiceTranscript?: string;
+    shippingMode?: 'ship' | 'pickup' | 'both';
   }) => void;
   language?: string;
 }
@@ -52,6 +53,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80';
   const [photo1, setPhoto1] = useState<string>(defaultPhoto1);
   const [photo2, setPhoto2] = useState<string | null>(null);
+
+  const [shippingMode, setShippingMode] = useState<'ship' | 'pickup' | 'both'>('both');
 
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
@@ -223,6 +226,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           : result.materials || 'Natural materials',
         price: Number(result.suggestedPrice) || 850,
         voiceTranscript: voiceTranscript.trim(),
+        shippingMode,
       });
     } catch (error: any) {
       console.error('[Gemini] Error:', error);
@@ -604,6 +608,42 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                 </button>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Shipping Eligibility Options (Part 1) */}
+        <section className="bg-white rounded-2xl p-4 border border-[#E3D5C5] shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-[#201A18] flex items-center gap-1.5">
+              <span>📦</span>
+              <span>{t('screens.addProduct.shippingOptions') || 'Shipping Options'}</span>
+            </label>
+            <span className="text-[10px] text-[#2D5A43] font-bold bg-[#E2ECE6] px-2 py-0.5 rounded-md">
+              {shippingMode === 'both' ? '📦 Ships or 📍 Pickup' : shippingMode === 'ship' ? '📦 Ships to you' : '📍 Pickup only'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'ship', label: t('checkout.canShip') || 'Can ship', icon: '📦' },
+              { id: 'pickup', label: t('checkout.pickupOnly') || 'Pickup only', icon: '📍' },
+              { id: 'both', label: t('checkout.bothOptions') || 'Both', icon: '✨' },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                id={`btn-shipping-${opt.id}`}
+                type="button"
+                onClick={() => setShippingMode(opt.id as 'ship' | 'pickup' | 'both')}
+                className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 ${
+                  shippingMode === opt.id
+                    ? 'bg-[#2D5A43] text-white border-[#2D5A43] shadow-xs'
+                    : 'bg-[#FAF6F0] text-[#201A18] border-[#E3D5C5] hover:border-[#2D5A43]'
+                }`}
+              >
+                <span className="text-base">{opt.icon}</span>
+                <span className="whitespace-nowrap text-[11px]">{opt.label}</span>
+              </button>
+            ))}
           </div>
         </section>
 

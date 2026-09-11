@@ -30,6 +30,7 @@ interface AiListingPreviewScreenProps {
     hours: number;
     materials: string;
     price: number;
+    shippingMode?: 'ship' | 'pickup' | 'both';
   };
   onBack: () => void;
   onPublishToShop: () => void;
@@ -275,6 +276,28 @@ export const AiListingPreviewScreen: React.FC<AiListingPreviewScreenProps> = ({
                   {t('screens.preview.materials')}
                 </div>
               </div>
+            </div>
+
+            {/* Shipping Mode Spec Chip */}
+            <div className="col-span-2 bg-[#E2ECE6]/80 border border-[#bceecf] rounded-xl p-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📦</span>
+                <div>
+                  <div className="text-xs font-bold text-[#2D5A43]">
+                    {productData?.shippingMode === 'ship'
+                      ? '📦 Ships to you'
+                      : productData?.shippingMode === 'pickup'
+                      ? '📍 Pickup only'
+                      : '📦 Ships or 📍 Pickup'}
+                  </div>
+                  <div className="text-[10px] text-[#5E534D]">
+                    Local & rural delivery enabled
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-[#2D5A43] bg-white px-2 py-0.5 rounded-md border border-[#bceecf]">
+                Active
+              </span>
             </div>
           </div>
         </section>

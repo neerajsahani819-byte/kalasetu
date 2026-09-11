@@ -624,6 +624,19 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
                             </span>
                           </div>
 
+                          {/* Shipping Badge (Part 1) */}
+                          <div className="absolute bottom-2 left-2">
+                            <span className="bg-white/90 backdrop-blur-xs text-[#201A18] text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-[#E3D5C5] shadow-xs">
+                              <span>
+                                {item.shippingMode === 'ship'
+                                  ? '📦 Ships'
+                                  : item.shippingMode === 'pickup'
+                                  ? '📍 Pickup'
+                                  : '📦 Ships / 📍 Pickup'}
+                              </span>
+                            </span>
+                          </div>
+
                           {/* Save / Heart Button */}
                           <button
                             id={`btn-fav-${item.id}`}
@@ -694,9 +707,20 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="absolute bottom-3 left-3 bg-[#E2ECE6]/95 backdrop-blur-xs text-[#2D5A43] text-xs font-bold px-2.5 py-1 rounded-full border border-[#bceecf] flex items-center gap-1 shadow-sm">
-                <span>✅</span>
-                <span>Verified Seller</span>
+              <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5">
+                <div className="bg-[#E2ECE6]/95 backdrop-blur-xs text-[#2D5A43] text-xs font-bold px-2.5 py-1 rounded-full border border-[#bceecf] flex items-center gap-1 shadow-sm">
+                  <span>✅</span>
+                  <span>Verified Seller</span>
+                </div>
+                <div className="bg-white/95 backdrop-blur-xs text-[#201A18] text-xs font-bold px-2.5 py-1 rounded-full border border-[#E3D5C5] flex items-center gap-1 shadow-sm">
+                  <span>
+                    {selectedProductForModal.shippingMode === 'ship'
+                      ? '📦 Ships to you'
+                      : selectedProductForModal.shippingMode === 'pickup'
+                      ? '📍 Pickup only'
+                      : '📦 Ships or 📍 Pickup'}
+                  </span>
+                </div>
               </div>
             </div>
 

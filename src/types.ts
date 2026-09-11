@@ -45,6 +45,7 @@ export interface CraftProduct {
   longitude?: number;
   coordinates?: { lat: number; lng: number };
   distanceKm?: number;
+  shippingMode?: 'ship' | 'pickup' | 'both';
   verifiedSeller?: boolean;
   isVerified?: boolean;
   viewsCount?: number;
@@ -185,6 +186,24 @@ export interface MarketplaceOrder {
   paymentMethod: 'demo';
   orderType?: 'purchase' | 'support';
   deliveryEstimate?: string;
+  deliveryMode?: 'ship' | 'pickup';
+  shippingCost?: number;
+  shippingType?: 'standard' | 'express' | 'pickup';
+  pickupAddress?: {
+    artisanName: string;
+    village: string;
+    district: string;
+    state: string;
+    lat?: number;
+    lng?: number;
+    phone?: string;
+  };
+  deliveryAddress?: {
+    name: string;
+    phone: string;
+    address: string;
+    pincode: string;
+  };
 }
 
 export interface UserAccountRecord extends AuthUser {

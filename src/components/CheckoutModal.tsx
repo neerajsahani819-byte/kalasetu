@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   CheckCircle2,
@@ -13,11 +13,16 @@ import {
   ArrowRight,
   Sparkles,
   IndianRupee,
+  MapPin,
+  ExternalLink,
+  Navigation,
+  Package,
 } from 'lucide-react';
-import { CraftProduct, AuthUser, MarketplaceOrder } from '../types';
+import { CraftProduct, AuthUser, MarketplaceOrder, UserLocation } from '../types';
 import { createOrderInFirestore } from '../services/firestoreService';
 import { speakAloud } from '../utils/audioService';
 import { useLanguage, getSpeechLangCode } from '../i18n/LanguageContext';
+import { haversineDistance, DEFAULT_BUYER_LOCATION } from '../utils/locationService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -47,30 +52,98 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [confirmedOrder, setConfirmedOrder] = useState<MarketplaceOrder | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState(false);
 
+  // Delivery & Pickup states (Part 2)
+  const [deliveryMode, setDeliveryMode] = useState<'ship' | 'pickup'>('ship');
+  const [shippingOption, setShippingOption] = useState<'standard' | 'express'>('express');
+  
+  // Delivery address form
+  const [recipientName, setRecipientName] = useState(currentUser?.name || '');
+  const [recipientPhone, setRecipientPhone] = useState(currentUser?.phone || '');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [pincode, setPincode] = useState('501401');
+
   // Support donation amount states
   const [selectedPreset, setSelectedPreset] = useState<number>(500);
   const [customAmountStr, setCustomAmountStr] = useState<string>('500');
   const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
 
-  // Reset states when modal opens
+  // Calculate distance between buyer and artisan
+  const buyerLocation: UserLocation = currentUser?.location || DEFAULT_BUYER_LOCATION;
+  const artisanLat = product?.latitude ?? product?.coordinates?.lat ?? 17.6296;
+  const artisanLng = product?.longitude ?? product?.coordinates?.lng ?? 78.4822;
+  const artisanVillage = product?.village || 'Medchal';
+  const artisanDistrict = product?.district || 'Medchal-Malkajgiri';
+  const artisanState = product?.state || 'Telangana';
+  const artisanName = product?.artisanName || 'Srinivas Yadav';
+
+  const distanceKm = useMemo(() => {
+    if (!product) return 5;
+    return haversineDistance(buyerLocation.lat, buyerLocation.lng, artisanLat, artisanLng);
+  }, [buyerLocation, artisanLat, artisanLng, product]);
+
+  // Shipping cost calculation (Part 3)
+  const expressShippingCost = useMemo(() => {
+    if (distanceKm <= 5) return 40;
+    if (distanceKm <= 20) return 60;
+    if (distanceKm <= 100) return 100;
+    if (distanceKm <= 500) return 150;
+    return 200;
+  }, [distanceKm]);
+
+  // Small lightweight items eligibility (Standard Post ₹30)
+  const isSmallItem = useMemo(() => {
+    if (!product) return false;
+    const cat = (product.category || '').toLowerCase() + ' ' + (product.categoryEnglish || '').toLowerCase();
+    return cat.includes('jewelry') || cat.includes('textile') || cat.includes('embroidery') || cat.includes('cloth');
+  }, [product]);
+
+  const activeShippingCost = useMemo(() => {
+    if (deliveryMode === 'pickup') return 0;
+    if (shippingOption === 'standard' && isSmallItem) return 30;
+    return expressShippingCost;
+  }, [deliveryMode, shippingOption, isSmallItem, expressShippingCost]);
+
+  // Allowed shipping modes from product (Part 1 & 2)
+  const allowedShippingMode = product?.shippingMode || 'both';
+
+  // Initialize and reset states when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && product) {
       setPaymentState('idle');
       setConfirmedOrder(null);
       setCopiedOrderId(false);
+
+      if (currentUser?.name) setRecipientName(currentUser.name);
+      if (currentUser?.phone) setRecipientPhone(currentUser.phone);
+
+      // Part 2 logic: Default selection
+      if (allowedShippingMode === 'pickup') {
+        setDeliveryMode('pickup');
+      } else if (allowedShippingMode === 'ship') {
+        setDeliveryMode('ship');
+      } else {
+        // 'both': Default Delivery if product price > 500, else Pickup
+        const price = product.suggestedPrice || product.price || 0;
+        setDeliveryMode(price > 500 ? 'ship' : 'pickup');
+      }
+
       if (mode === 'support') {
         setSelectedPreset(500);
         setCustomAmountStr('500');
       }
     }
-  }, [isOpen, mode]);
+  }, [isOpen, product, allowedShippingMode, currentUser, mode]);
 
   if (!isOpen || !product) return null;
 
-  const currentAmount =
+  const itemPrice =
     mode === 'support'
       ? Math.max(10, parseInt(customAmountStr, 10) || 100)
-      : product.suggestedPrice || 850;
+      : product.suggestedPrice || product.price || 850;
+
+  const totalAmount = mode === 'support' ? itemPrice : itemPrice + activeShippingCost;
+
+  const mapsDirectionUrl = `https://www.google.com/maps/dir/?api=1&destination=${artisanLat},${artisanLng}`;
 
   const handleKeypadPress = (key: string) => {
     if (key === 'clear') {
@@ -84,7 +157,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
     setCustomAmountStr((prev) => {
-      if (prev === '0' || prev === '500' && selectedPreset === 500) {
+      if (prev === '0' || (prev === '500' && selectedPreset === 500)) {
         return key;
       }
       if (prev.length >= 6) return prev;
@@ -104,7 +177,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     speakAloud('Please state contribution amount like 500 or 1000', {
       lang: speechLang,
       onEnd: () => {
-        // Mock voice recognition for demo
         setTimeout(() => {
           setIsVoiceInputActive(false);
           setCustomAmountStr('1000');
@@ -122,43 +194,78 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderId = `ORD-${Date.now().toString().slice(-6)}-${randomSuffix}`;
 
-    const orderPayload = {
+    const deliveryEstimate =
+      mode === 'support'
+        ? 'Instant Direct Transfer'
+        : deliveryMode === 'pickup'
+        ? `Self-Pickup from ${artisanVillage} (Ready today)`
+        : shippingOption === 'standard' && isSmallItem
+        ? 'Standard Post (5-7 days)'
+        : 'Express Local Delivery (2-3 days)';
+
+    const orderPayload: Partial<MarketplaceOrder> & { orderId: string; buyerId: string; artisanId: string; productId: string; amount: number; status: 'paid'; createdAt: string; paymentMethod: 'demo' } = {
       orderId,
       buyerId: currentUser?.id || 'guest-buyer',
-      buyerName: currentUser?.name || 'Art Patron',
-      artisanId: product.artisanId || 'user-parvati',
-      artisanName: product.artisanName || 'Parvati Devi',
+      buyerName: recipientName || currentUser?.name || 'Art Patron',
+      artisanId: product.artisanId || 'user-srinivas-medchal',
+      artisanName: product.artisanName || artisanName,
       productId: product.id,
       productTitle:
         mode === 'support'
           ? `Support Fund: ${product.title}`
           : product.title,
-      productImageUrl: product.images?.[0] || '',
-      amount: currentAmount,
+      productImageUrl: product.imageUrl || product.images?.[0] || '',
+      amount: totalAmount,
       status: 'paid' as const,
       createdAt: new Date().toISOString(),
       paymentMethod: 'demo' as const,
       orderType: (mode === 'support' ? 'support' : 'purchase') as 'purchase' | 'support',
-      deliveryEstimate: mode === 'buy' ? '3-5 business days • Free Delivery' : 'Instant Direct Transfer',
+      deliveryEstimate,
+      deliveryMode: mode === 'support' ? undefined : deliveryMode,
+      shippingCost: mode === 'support' ? 0 : activeShippingCost,
+      shippingType: mode === 'support' ? undefined : deliveryMode === 'pickup' ? 'pickup' : shippingOption,
+      pickupAddress:
+        deliveryMode === 'pickup'
+          ? {
+              artisanName,
+              village: artisanVillage,
+              district: artisanDistrict,
+              state: artisanState,
+              lat: artisanLat,
+              lng: artisanLng,
+              phone: '+91 98765 43210',
+            }
+          : undefined,
+      deliveryAddress:
+        deliveryMode === 'ship'
+          ? {
+              name: recipientName || 'Art Patron',
+              phone: recipientPhone || '+91 98765 00000',
+              address: streetAddress || `${buyerLocation.city}, ${buyerLocation.state}`,
+              pincode: pincode || '501401',
+            }
+          : undefined,
     };
 
     setTimeout(async () => {
       try {
-        const created = await createOrderInFirestore(orderPayload);
+        const created = await createOrderInFirestore(orderPayload as any);
         setConfirmedOrder(created);
         setPaymentState('success');
 
         const announceMsg =
           mode === 'support'
             ? `${t('screens.checkout.successTitle')} Order ID ${orderId}`
-            : `${t('screens.checkout.successTitle')} Order ID ${orderId}`;
+            : deliveryMode === 'pickup'
+            ? `Pickup order confirmed! Visit ${artisanVillage} to collect.`
+            : `Order confirmed! Delivering to ${streetAddress || buyerLocation.city} in 2-3 days.`;
         speakAloud(announceMsg, { lang: speechLang });
       } catch (err) {
         console.error('[Payment] Error writing order to Firestore:', err);
         setConfirmedOrder(orderPayload as MarketplaceOrder);
         setPaymentState('success');
       }
-    }, 2000);
+    }, 1800);
   };
 
   const handleCopyOrderId = () => {
@@ -181,7 +288,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     >
       <div
         id="checkout-modal-dialog"
-        className="bg-[#FAF6F0] w-full max-w-md rounded-3xl border border-[#E3D5C5] shadow-2xl overflow-hidden my-auto animate-scale-in flex flex-col max-h-[92vh]"
+        className="bg-[#FAF6F0] w-full max-w-md rounded-3xl border border-[#E3D5C5] shadow-2xl overflow-hidden my-auto animate-scale-in flex flex-col max-h-[94vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -214,7 +321,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <button
               id="btn-close-checkout"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-[#FAF6F0] hover:bg-[#ebdccf] text-[#5E534D] flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full bg-[#FAF6F0] hover:bg-[#ebdccf] text-[#5E534D] flex items-center justify-center transition-colors cursor-pointer"
               aria-label={t('common.close')}
             >
               <X className="w-4 h-4" />
@@ -231,7 +338,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="bg-white border border-[#E3D5C5] rounded-2xl p-3 flex items-start gap-3 shadow-2xs">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#F4EBE1] flex-shrink-0 border border-[#E3D5C5]">
                   <img
-                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80'}
+                    src={product.imageUrl || product.images?.[0] || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80'}
                     alt={product.title}
                     className="w-full h-full object-cover"
                   />
@@ -242,12 +349,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {product.title}
                   </h3>
                   <div className="text-xs text-[#5E534D] line-clamp-1">
-                    {product.titleEnglish || product.category}
+                    {product.titleLocal || product.category}
                   </div>
 
                   <div className="flex items-center gap-1.5 pt-1 text-[11px] text-[#201A18] font-medium">
-                    <span className="text-[#5E534D]">{t('screens.orders.artisanLabel')}</span>
-                    <span className="font-bold text-[#9C3D25]">{product.artisanName || 'Parvati Devi'}</span>
+                    <span className="text-[#5E534D]">{t('screens.orders.artisanLabel')}:</span>
+                    <span className="font-bold text-[#9C3D25]">{artisanName}</span>
                     <CheckCircle2 className="w-3 h-3 text-[#2D5A43] flex-shrink-0" />
                   </div>
 
@@ -255,29 +362,186 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <div className="flex items-center justify-between pt-1.5 border-t border-[#F4EBE1] mt-1.5">
                       <span className="text-xs text-[#5E534D]">{t('screens.checkout.price')}:</span>
                       <span className="font-display font-bold text-base text-[#9C3D25]">
-                        ₹{product.suggestedPrice}
+                        ₹{product.price || product.suggestedPrice}
                       </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Delivery Estimate */}
+              {/* PART 2: DELIVERY & PICKUP OPTIONS (Only in Purchase Mode) */}
               {mode === 'buy' && (
-                <div className="bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#2D5A43]">
-                    <Truck className="w-4 h-4" />
-                    <span>{t('screens.orders.deliveryEstimate')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#201A18]">
-                    <span className="font-medium text-[#5E534D]">{t('screens.checkout.shipping')}:</span>
-                    <span className="font-bold bg-[#E2ECE6] text-[#2D5A43] px-2 py-0.5 rounded-md">
-                      {t('common.freeShipping')}
+                <div className="bg-white border border-[#E3D5C5] rounded-2xl p-3.5 space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-[#F4EBE1] pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#201A18]">
+                      <Truck className="w-4 h-4 text-[#9C3D25]" />
+                      <span>{t('checkout.deliveryOptions') || 'Delivery'}</span>
+                    </div>
+                    <span className="text-[10px] text-[#2D5A43] font-semibold bg-[#E2ECE6] px-2 py-0.5 rounded-full">
+                      {distanceKm === 0 ? '< 1 km away' : `${distanceKm} km away`}
                     </span>
                   </div>
-                  <div className="text-[11px] text-[#5E534D] flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#2D5A43]" />
-                    <span>{t('common.directFairTrade')}</span>
+
+                  {/* Options Radio List */}
+                  <div className="space-y-2.5">
+                    {/* Option 1: Deliver to my address */}
+                    {(allowedShippingMode === 'ship' || allowedShippingMode === 'both') && (
+                      <div
+                        onClick={() => setDeliveryMode('ship')}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                          deliveryMode === 'ship'
+                            ? 'bg-[#FDF6F0] border-[#9C3D25] ring-1 ring-[#9C3D25]/30'
+                            : 'bg-[#FAF6F0] border-[#E3D5C5] hover:border-[#9C3D25]/50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            type="radio"
+                            id="radio-deliver-address"
+                            name="deliveryMode"
+                            checked={deliveryMode === 'ship'}
+                            onChange={() => setDeliveryMode('ship')}
+                            className="mt-0.5 text-[#9C3D25] focus:ring-[#9C3D25]"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-xs text-[#201A18]">
+                                {t('checkout.deliverToAddress') || 'Deliver to my address'}
+                              </span>
+                              <span className="text-xs font-extrabold text-[#9C3D25]">
+                                +₹{activeShippingCost}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-[#5E534D] mt-0.5">
+                              Estimated: 2-3 days ({distanceKm} km distance)
+                            </p>
+
+                            {/* Address input sub-form */}
+                            {deliveryMode === 'ship' && (
+                              <div className="mt-2.5 pt-2.5 border-t border-[#E3D5C5]/60 space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Your Name"
+                                    value={recipientName}
+                                    onChange={(e) => setRecipientName(e.target.value)}
+                                    className="bg-white border border-[#E3D5C5] rounded-lg px-2.5 py-1.5 text-xs text-[#201A18] focus:outline-none focus:border-[#9C3D25]"
+                                  />
+                                  <input
+                                    type="tel"
+                                    placeholder="Phone Number"
+                                    value={recipientPhone}
+                                    onChange={(e) => setRecipientPhone(e.target.value)}
+                                    className="bg-white border border-[#E3D5C5] rounded-lg px-2.5 py-1.5 text-xs text-[#201A18] focus:outline-none focus:border-[#9C3D25]"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="House/Street/Village Address"
+                                  value={streetAddress}
+                                  onChange={(e) => setStreetAddress(e.target.value)}
+                                  className="w-full bg-white border border-[#E3D5C5] rounded-lg px-2.5 py-1.5 text-xs text-[#201A18] focus:outline-none focus:border-[#9C3D25]"
+                                />
+                                <div className="flex items-center justify-between text-[11px] text-[#6B605B]">
+                                  <span>To: {streetAddress || buyerLocation.city || 'Add address'}</span>
+                                  <span className="font-mono">{pincode}</span>
+                                </div>
+
+                                {/* Lightweight Standard Post Toggle if applicable */}
+                                {isSmallItem && (
+                                  <div className="pt-1.5 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setShippingOption('standard')}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                        shippingOption === 'standard'
+                                          ? 'bg-[#2D5A43] text-white border-[#2D5A43]'
+                                          : 'bg-white text-[#5E534D] border-[#E3D5C5]'
+                                      }`}
+                                    >
+                                      Standard Post: ₹30 (5-7 days)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setShippingOption('express')}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                        shippingOption === 'express'
+                                          ? 'bg-[#2D5A43] text-white border-[#2D5A43]'
+                                          : 'bg-white text-[#5E534D] border-[#E3D5C5]'
+                                      }`}
+                                    >
+                                      Express: ₹{expressShippingCost} (2-3 days)
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Option 2: Pick up from artisan */}
+                    {(allowedShippingMode === 'pickup' || allowedShippingMode === 'both') && (
+                      <div
+                        onClick={() => setDeliveryMode('pickup')}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                          deliveryMode === 'pickup'
+                            ? 'bg-[#E2ECE6]/60 border-[#2D5A43] ring-1 ring-[#2D5A43]/30'
+                            : 'bg-[#FAF6F0] border-[#E3D5C5] hover:border-[#2D5A43]/50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            type="radio"
+                            id="radio-pickup-artisan"
+                            name="deliveryMode"
+                            checked={deliveryMode === 'pickup'}
+                            onChange={() => setDeliveryMode('pickup')}
+                            className="mt-0.5 text-[#2D5A43] focus:ring-[#2D5A43]"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-xs text-[#201A18]">
+                                {t('checkout.pickupFrom') || 'Pick up from artisan'}
+                              </span>
+                              <span className="text-xs font-bold text-[#2D5A43] bg-[#E2ECE6] px-2 py-0.5 rounded-md">
+                                {t('checkout.free') || 'Free'}
+                              </span>
+                            </div>
+
+                            <div className="mt-1 space-y-0.5 text-[11px] text-[#5E534D]">
+                              <div className="font-semibold text-[#201A18] flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-[#2D5A43]" />
+                                <span>{artisanName}</span>
+                              </div>
+                              <div className="pl-4">
+                                {artisanVillage}, {artisanDistrict} ({distanceKm} km from you)
+                              </div>
+                            </div>
+
+                            {/* Get Directions Button (Part 2) */}
+                            <div className="mt-2 pt-2 border-t border-[#bceecf]/60 flex items-center justify-between">
+                              <span className="text-[10px] text-[#2D5A43] font-medium">
+                                Ready for self-pickup today
+                              </span>
+                              <a
+                                href={mapsDirectionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2D5A43] hover:text-[#1E3F2F] bg-white px-2 py-1 rounded-lg border border-[#bceecf] shadow-2xs hover:bg-[#E2ECE6] transition-colors"
+                              >
+                                <Navigation className="w-3 h-3" />
+                                <span>{t('checkout.getDirections') || 'Get Directions'}</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -386,19 +650,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="bg-white border border-[#E3D5C5] rounded-2xl p-3 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-[#5E534D]">
                   <span>{t('screens.checkout.price')}:</span>
-                  <span className="font-semibold text-[#201A18]">₹{currentAmount}</span>
+                  <span className="font-semibold text-[#201A18]">₹{itemPrice}</span>
                 </div>
-                <div className="flex items-center justify-between text-[#5E534D]">
-                  <span>{t('screens.checkout.shipping')}:</span>
-                  <span className="font-semibold text-[#2D5A43]">{t('common.freeShipping')}</span>
-                </div>
+                {mode === 'buy' && (
+                  <div className="flex items-center justify-between text-[#5E534D]">
+                    <span>{t('screens.checkout.shipping')}:</span>
+                    <span className="font-semibold text-[#2D5A43]">
+                      {deliveryMode === 'pickup' ? (
+                        t('checkout.free') || 'Free (Pickup)'
+                      ) : (
+                        `₹${activeShippingCost}`
+                      )}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-[#5E534D]">
                   <span>{t('screens.checkout.platformFee')}:</span>
                   <span className="font-semibold text-[#2D5A43]">₹0 (0%)</span>
                 </div>
                 <div className="border-t border-[#E3D5C5] pt-2 flex items-center justify-between font-bold text-sm text-[#201A18]">
                   <span>{t('screens.checkout.total')}:</span>
-                  <span className="font-display text-base text-[#9C3D25]">₹{currentAmount}</span>
+                  <span className="font-display text-base text-[#9C3D25]">₹{totalAmount}</span>
                 </div>
               </div>
 
@@ -406,11 +678,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 id="btn-confirm-checkout-pay"
                 onClick={handlePay}
-                disabled={currentAmount <= 0}
-                className="w-full h-12 bg-[#9C3D25] hover:bg-[#802913] active:scale-98 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                disabled={totalAmount <= 0}
+                className="w-full h-12 bg-[#9C3D25] hover:bg-[#802913] active:scale-98 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
               >
                 <ShieldCheck className="w-5 h-5" />
-                <span className="text-sm">{t('screens.checkout.demoPaymentBtn', { amount: currentAmount })}</span>
+                <span className="text-sm">
+                  {t('screens.checkout.demoPaymentBtn', { amount: totalAmount })}
+                </span>
               </button>
             </>
           )}
@@ -426,7 +700,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {t('common.loading')}
                 </h3>
                 <p className="text-xs text-[#5E534D] mt-1">
-                  Processing ₹{currentAmount}...
+                  Processing ₹{totalAmount}...
                 </p>
                 <p className="text-[11px] text-[#2D5A43] font-semibold mt-1">
                   {t('common.directFairTrade')}
@@ -435,7 +709,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           )}
 
-          {/* STATE 3: SUCCESS */}
+          {/* STATE 3: SUCCESS (Part 5: Order Confirmation UI) */}
           {paymentState === 'success' && confirmedOrder && (
             <div className="py-4 space-y-4 animate-scale-in text-center">
               {/* Success Badge */}
@@ -448,18 +722,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {t('screens.checkout.successTitle')} ✓
                 </h3>
                 <p className="text-xs text-[#5E534D] mt-1">
-                  {t('screens.checkout.successMsg', { amount: confirmedOrder.amount, artisan: product.artisanName || 'Artisan' })}
+                  {t('screens.checkout.successMsg', { amount: confirmedOrder.amount, artisan: artisanName })}
                 </p>
               </div>
 
-              {/* Order ID Box */}
-              <div className="bg-white border border-[#E3D5C5] rounded-2xl p-3 space-y-2 text-left shadow-2xs">
+              {/* Order Confirmation Details Box (Part 5) */}
+              <div className="bg-white border border-[#E3D5C5] rounded-2xl p-3.5 space-y-2.5 text-left shadow-2xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#5E534D]">Order ID:</span>
                   <button
                     id="btn-copy-order-id"
                     onClick={handleCopyOrderId}
-                    className="flex items-center gap-1 text-[11px] text-[#9C3D25] font-bold hover:underline"
+                    className="flex items-center gap-1 text-[11px] text-[#9C3D25] font-bold hover:underline cursor-pointer"
                   >
                     {copiedOrderId ? (
                       <>
@@ -477,6 +751,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="font-mono font-bold text-sm text-[#201A18] bg-[#FAF6F0] px-3 py-1.5 rounded-xl border border-[#E3D5C5]">
                   {confirmedOrder.orderId}
                 </div>
+
+                {/* Specific Fulfillment Banner (Part 5) */}
+                {confirmedOrder.orderType === 'purchase' && (
+                  <div className="bg-[#FAF6F0] border border-[#E3D5C5] rounded-xl p-3 space-y-2">
+                    {confirmedOrder.deliveryMode === 'pickup' ? (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#2D5A43]">
+                          <MapPin className="w-4 h-4 text-[#2D5A43]" />
+                          <span>Pick up from {artisanName}, {artisanVillage}</span>
+                        </div>
+                        <p className="text-[11px] text-[#5E534D] mt-0.5">
+                          Directions sent to your phone. Ready for collection today.
+                        </p>
+                        <div className="pt-2">
+                          <a
+                            id="btn-confirmation-directions"
+                            href={mapsDirectionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-1.5 w-full bg-[#2D5A43] hover:bg-[#1E3F2F] text-white text-xs font-bold py-2 rounded-xl transition-all shadow-xs"
+                          >
+                            <Navigation className="w-3.5 h-3.5" />
+                            <span>{t('checkout.getDirections') || 'Get Directions'} (Google Maps)</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#9C3D25]">
+                          <Package className="w-4 h-4 text-[#9C3D25]" />
+                          <span>Delivery in 2-3 days</span>
+                        </div>
+                        <p className="text-[11px] text-[#5E534D] mt-0.5">
+                          Your order will be delivered to{' '}
+                          <span className="font-semibold text-[#201A18]">
+                            {confirmedOrder.deliveryAddress?.address || streetAddress || buyerLocation.city}
+                          </span>{' '}
+                          in 2-3 days.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#F4EBE1] text-xs">
                   <div>
@@ -503,7 +821,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClose();
                     onViewOrders?.();
                   }}
-                  className="h-11 bg-[#2D5A43] hover:bg-[#1E3F2F] active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  className="h-11 bg-[#2D5A43] hover:bg-[#1E3F2F] active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
                   <span>{t('screens.checkout.viewOrders')}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -515,7 +833,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClose();
                     onBackToMarketplace?.();
                   }}
-                  className="h-11 bg-white hover:bg-[#FAF6F0] active:scale-95 text-[#201A18] border border-[#E3D5C5] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  className="h-11 bg-white hover:bg-[#FAF6F0] active:scale-95 text-[#201A18] border border-[#E3D5C5] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
                   <span>{t('screens.checkout.continueShopping')}</span>
                 </button>
@@ -528,7 +846,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <div className="bg-[#FAF6F0] border-t border-[#E3D5C5] px-4 py-2.5 text-center flex-shrink-0">
           <p className="text-[11px] font-semibold text-[#5E534D] flex items-center justify-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E5A93C]" />
-            <span>Demo mode — 100% fair trade simulation</span>
+            <span>Local rural-to-local commerce simulation • 100% direct to artisan</span>
           </p>
         </div>
       </div>

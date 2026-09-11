@@ -423,6 +423,7 @@ export async function createProductInFirestore(product: CraftProduct): Promise<C
     artisanRegion: finalProduct.artisanRegion,
     artisanExperience: finalProduct.artisanExperience,
     verifiedSeller: finalProduct.verifiedSeller !== false,
+    shippingMode: finalProduct.shippingMode || 'both',
     isVerified: finalProduct.isVerified !== false,
     viewsCount: finalProduct.viewsCount || 1,
     isFairTrade: finalProduct.isFairTrade !== false,
@@ -591,7 +592,7 @@ export async function createOrderInFirestore(orderData: {
   artisanId: string;
   productId: string;
   amount: number;
-  status: 'paid' | 'pending' | 'delivered';
+  status: 'paid' | 'pending' | 'shipped' | 'delivered';
   createdAt: string;
   paymentMethod: 'demo';
   productTitle?: string;
@@ -600,6 +601,24 @@ export async function createOrderInFirestore(orderData: {
   buyerName?: string;
   orderType?: 'purchase' | 'support';
   deliveryEstimate?: string;
+  deliveryMode?: 'ship' | 'pickup';
+  shippingCost?: number;
+  shippingType?: 'standard' | 'express' | 'pickup';
+  pickupAddress?: {
+    artisanName: string;
+    village: string;
+    district: string;
+    state: string;
+    lat?: number;
+    lng?: number;
+    phone?: string;
+  };
+  deliveryAddress?: {
+    name: string;
+    phone: string;
+    address: string;
+    pincode: string;
+  };
 }): Promise<MarketplaceOrder> {
   console.log(`[Payment] Order created: ${orderData.orderId}`);
 
@@ -612,29 +631,38 @@ export async function createOrderInFirestore(orderData: {
     status: orderData.status || 'paid',
     createdAt: orderData.createdAt || new Date().toISOString(),
     paymentMethod: 'demo',
-    productTitle: orderData.productTitle || 'हस्तशिल्प उत्पाद (Handicraft)',
+    productTitle: orderData.productTitle || 'హస్తకళా ఉత్పత్తి (Handicraft)',
     productImageUrl: orderData.productImageUrl || '',
-    artisanName: orderData.artisanName || 'पार्वती देवी',
-    buyerName: orderData.buyerName || 'कला साधक',
+    artisanName: orderData.artisanName || 'శ్రీనివాస్ యాదవ్',
+    buyerName: orderData.buyerName || 'కళా ప్రేమికుడు',
     orderType: orderData.orderType || 'purchase',
-    deliveryEstimate: orderData.deliveryEstimate || '3-5 business days',
+    deliveryEstimate: orderData.deliveryEstimate || '2-3 business days',
+    deliveryMode: orderData.deliveryMode || 'ship',
+    shippingCost: orderData.shippingCost ?? (orderData.deliveryMode === 'pickup' ? 0 : 40),
+    shippingType: orderData.shippingType || (orderData.deliveryMode === 'pickup' ? 'pickup' : 'standard'),
+    pickupAddress: orderData.pickupAddress,
+    deliveryAddress: orderData.deliveryAddress,
   };
 
   try {
     // Write order to Firestore 'orders' collection
     await setDoc(doc(db, 'orders', orderRecord.orderId), orderRecord);
 
-    // Send a Firestore message to the artisan
-    const notificationText =
-      orderRecord.orderType === 'support'
-        ? `🎉 New support! ${orderRecord.productTitle} — ₹${orderRecord.amount}`
-        : `🎉 New order! ${orderRecord.productTitle} — ₹${orderRecord.amount}`;
+    // Send a Firestore message to the artisan (Part 6)
+    let notificationText = `🎉 New support! ${orderRecord.productTitle} — ₹${orderRecord.amount}`;
+    if (orderRecord.orderType === 'purchase') {
+      if (orderRecord.deliveryMode === 'pickup') {
+        notificationText = `📍 New pickup order! ₹${orderRecord.amount} — ${orderRecord.productTitle}. Buyer will visit your location at ${orderRecord.pickupAddress?.village || 'Medchal'}.`;
+      } else {
+        notificationText = `🛍️ New order! ₹${orderRecord.amount} — ${orderRecord.productTitle}. Buyer will provide shipping address after you confirm.`;
+      }
+    }
 
     await sendMessageToFirestore({
       senderId: orderRecord.buyerId,
       recipientId: orderRecord.artisanId,
       text: notificationText,
-      senderName: orderRecord.buyerName || 'कला साधक (Buyer)',
+      senderName: orderRecord.buyerName || 'Buyer',
       senderRole: 'buyer',
       productTitle: orderRecord.productTitle,
     });
