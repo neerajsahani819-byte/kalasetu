@@ -82,6 +82,71 @@ export async function ensureDemoUsersInFirestore(): Promise<void> {
 }
 
 /**
+ * One-time and runtime cleanup that identifies and deletes duplicate product documents in Firestore
+ * (groups by title + imageUrl per artisan, keeps the oldest).
+ */
+export async function cleanupDuplicateProducts(targetArtisanId?: string): Promise<number> {
+  let deletedCount = 0;
+  try {
+    const productsSnap = await getDocs(collection(db, 'products')).catch(() => null);
+    if (productsSnap && !productsSnap.empty) {
+      const seen = new Map<string, { id: string; createdAt: number }>();
+      const toDelete: string[] = [];
+
+      productsSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const artisanId = (data.artisanId || '').trim();
+        if (targetArtisanId && artisanId !== targetArtisanId) {
+          return;
+        }
+        const title = (data.title || '').trim().toLowerCase();
+        const img = (data.imageUrl || data.images?.[0] || '').trim();
+        const key = `${artisanId}_${title}_${img}`;
+        const time = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+
+        if (seen.has(key)) {
+          const existing = seen.get(key)!;
+          if (time < existing.createdAt) {
+            toDelete.push(existing.id);
+            seen.set(key, { id: docSnap.id, createdAt: time });
+          } else {
+            toDelete.push(docSnap.id);
+          }
+        } else {
+          seen.set(key, { id: docSnap.id, createdAt: time });
+        }
+      });
+
+      if (toDelete.length > 0) {
+        const batch = writeBatch(db);
+        for (const docId of toDelete) {
+          batch.delete(doc(db, 'products', docId));
+        }
+        await batch.commit();
+        deletedCount = toDelete.length;
+      }
+    }
+  } catch (err) {
+    console.warn('[Cleanup] Error checking duplicates:', err);
+  }
+
+  // Also clean local storage cache
+  try {
+    const cached = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (cached) {
+      const parsed: CraftProduct[] = JSON.parse(cached);
+      const unique = Array.from(new Map(parsed.map((p) => [p.id, p])).values());
+      localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(unique));
+    }
+  } catch {
+    // ignore
+  }
+
+  console.log(`[Cleanup] Deleted ${deletedCount} duplicate products`);
+  return deletedCount;
+}
+
+/**
  * Migrates localStorage data (products, users, messages) to Firestore collections
  * with the exact required schema:
  * - users (id, email, name, role, avatar, language)
@@ -91,6 +156,8 @@ export async function ensureDemoUsersInFirestore(): Promise<void> {
 export async function runFirestoreMigration(): Promise<void> {
   // Always guarantee demo accounts exist in Firestore
   ensureDemoUsersInFirestore().catch(() => {});
+  // Run duplicate cleanup
+  cleanupDuplicateProducts().catch(() => {});
 
   try {
     const alreadyMigrated = localStorage.getItem(MIGRATION_KEY);
@@ -105,10 +172,29 @@ export async function runFirestoreMigration(): Promise<void> {
     if (!productsSnap || productsSnap.empty) {
       console.log('[Firestore] Seeding products collection with initial catalog...');
       const productBatch = writeBatch(db);
+      const existingTitles = new Set<string>();
+
       for (const p of mockCraftProducts) {
+        const artisanId = p.artisanId || 'artisan-demo-01';
+        const titleKey = `${artisanId}_${(p.title || '').trim().toLowerCase()}`;
+
+        // Check if product with same title already exists for that artisan
+        if (existingTitles.has(titleKey)) {
+          continue;
+        }
+        existingTitles.add(titleKey);
+
+        // Generate deterministic document ID based on hash of title + artisanId
+        let hash = 0;
+        for (let i = 0; i < titleKey.length; i++) {
+          hash = (hash << 5) - hash + titleKey.charCodeAt(i);
+          hash |= 0;
+        }
+        const docId = p.id || `prod_${artisanId.slice(0, 10)}_${Math.abs(hash)}`;
+
         const productDoc = {
-          id: p.id,
-          artisanId: p.artisanId,
+          id: docId,
+          artisanId: artisanId,
           title: p.title,
           description: p.description,
           price: p.suggestedPrice || 0,
@@ -139,7 +225,7 @@ export async function runFirestoreMigration(): Promise<void> {
           audioStoryUrl: p.audioStoryUrl || '',
           audioDuration: p.audioDuration || '0:35',
         };
-        productBatch.set(doc(db, 'products', p.id), productDoc, { merge: true });
+        productBatch.set(doc(db, 'products', docId), productDoc, { merge: true });
       }
       await productBatch.commit();
       console.log(`[Firestore] Seeded ${mockCraftProducts.length} products successfully!`);
@@ -278,8 +364,11 @@ export function subscribeToProducts(
       });
 
       if (prods.length > 0) {
+        // Deduplicate by ID
+        const uniqueProds = Array.from(new Map(prods.map((p) => [p.id, p])).values());
+
         // Sort by createdAt descending if present
-        prods.sort((a, b) => {
+        uniqueProds.sort((a, b) => {
           const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return timeB - timeA;
@@ -287,11 +376,11 @@ export function subscribeToProducts(
 
         // Save to offline cache
         try {
-          localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(prods));
+          localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(uniqueProds));
         } catch {
           // ignore
         }
-        onUpdate(prods);
+        onUpdate(uniqueProds);
       }
       onLoadingChange?.(false);
     },

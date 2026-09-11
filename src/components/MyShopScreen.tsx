@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Volume2,
   Package,
@@ -19,10 +19,9 @@ import {
 import { CraftProduct, UserRole, AuthUser } from '../types';
 import { KalaSetuLogo } from './KalaSetuLogo';
 import { VoicePulseButton } from './VoicePulseButton';
-import { ArtisanTrendsChart } from './ArtisanTrendsChart';
 import { speakAloud } from '../utils/audioService';
 import { useLanguage, getSpeechLangCode } from '../i18n/LanguageContext';
-import { mockMonthlyTrends } from '../data/mockData';
+import { getUserFromFirestore } from '../services/firestoreService';
 
 interface MyShopScreenProps {
   products: CraftProduct[];
@@ -57,6 +56,49 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
 
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [isRecordingNewProduct, setIsRecordingNewProduct] = useState(false);
+  const [firestoreDisplayName, setFirestoreDisplayName] = useState<string | null>(null);
+
+  // FIX 1: Deduplicate products by product.id (or composite title+image key) before rendering
+  const uniqueProducts = useMemo(() => {
+    return Array.from(
+      new Map(
+        products.map((p) => {
+          const key = p.id || `${(p.title || '').trim().toLowerCase()}_${(p.images?.[0] || p.imageUrl || '').trim()}`;
+          return [key, p];
+        })
+      ).values()
+    );
+  }, [products]);
+
+  // FIX 3: Fetch displayName from Firestore if needed, fix greeting fallback so it never renders "₹"
+  useEffect(() => {
+    if (currentUser?.id && (!currentUser.name || currentUser.name === '₹' || currentUser.name.trim() === '')) {
+      getUserFromFirestore(currentUser.id)
+        .then((u) => {
+          if (u?.name && u.name !== '₹' && u.name.trim() !== '') {
+            setFirestoreDisplayName(u.name);
+          }
+        })
+        .catch((err) => console.warn('[Dashboard] Could not fetch firestore user:', err));
+    }
+  }, [currentUser?.id, currentUser?.name]);
+
+  const rawDisplayName =
+    (currentUser?.name && currentUser.name !== '₹' && currentUser.name.trim() !== '' ? currentUser.name : null) ||
+    ((currentUser as any)?.displayName && (currentUser as any).displayName !== '₹' && (currentUser as any).displayName.trim() !== '' ? (currentUser as any).displayName : null) ||
+    firestoreDisplayName ||
+    (currentUser?.email ? currentUser.email.split('@')[0] : null);
+
+  const cleanDisplayName =
+    rawDisplayName && rawDisplayName !== '₹' && rawDisplayName.trim() !== ''
+      ? rawDisplayName.trim()
+      : 'Parvati';
+
+  // Debug logs as specified in FIX 3
+  useEffect(() => {
+    console.log('[Dashboard] user:', currentUser);
+    console.log('[Dashboard] displayName:', cleanDisplayName);
+  }, [currentUser, cleanDisplayName]);
 
   const handleListenShopOverview = () => {
     if (showEmptyState) {
@@ -65,7 +107,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
       });
     } else {
       speakAloud(
-        `${t('screens.myShop.namaste', { name: currentUser?.name || t('common.artisan') })}. ${t('screens.myShop.activeListing')}: ${products.length}.`,
+        `${t('dashboard.namaste', { name: cleanDisplayName })}. ${t('dashboard.activeListings')}: ${uniqueProducts.length}.`,
         { lang: speechLang }
       );
     }
@@ -134,12 +176,12 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
               id="btn-myshop-artisan-profile"
               onClick={onOpenArtisanProfile}
               className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#9C3D25] ring-1 ring-white active:scale-95 transition-transform"
-              title={currentUser?.name || t('screens.profile.title')}
-              aria-label={t('screens.profile.title')}
+              title={cleanDisplayName}
+              aria-label={cleanDisplayName}
             >
               <img
                 src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"}
-                alt={currentUser?.name || "Artisan Profile"}
+                alt={cleanDisplayName}
                 className="w-full h-full object-cover"
               />
             </button>
@@ -148,7 +190,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-3 space-y-4">
-        {/* Artisan Greeting & Verified Banner */}
+        {/* FIX 3: Artisan Greeting & Verified Banner */}
         <section aria-label="Artisan Details" className="bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -156,14 +198,14 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                 type="button"
                 onClick={onOpenAuthModal || onOpenArtisanProfile}
                 className="relative w-12 h-12 rounded-full overflow-hidden border border-[#E3D5C5] flex-shrink-0 transition-transform active:scale-95"
-                title={currentUser ? currentUser.name : t('screens.profile.title')}
+                title={cleanDisplayName}
               >
                 <img
                   src={
                     currentUser?.avatarUrl ||
                     'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80'
                   }
-                  alt={currentUser ? currentUser.name : 'Artisan'}
+                  alt={cleanDisplayName}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#2D5A43] text-white flex items-center justify-center text-[10px]">
@@ -173,7 +215,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
 
               <div className="min-w-0">
                 <div className="font-display font-bold text-base text-[#201A18] flex items-center gap-1.5 flex-wrap truncate">
-                  <span>{currentUser ? t('screens.myShop.namaste', { name: currentUser.name }) : t('screens.myShop.namaste', { name: t('common.artisan') })}</span>
+                  <span>{t('dashboard.namaste', { name: cleanDisplayName })}</span>
                 </div>
                 <div className="text-xs font-semibold text-[#2D5A43] flex items-center gap-1 mt-0.5 truncate">
                   <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
@@ -196,9 +238,9 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                   speakAloud(next ? t('screens.myShop.emptyTitle') : t('screens.myShop.title'), { lang: speechLang });
                 }}
                 className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4EBE1] hover:bg-[#ebdccf] text-[#9C3D25] border border-[#E3D5C5] transition-colors"
-                title={showEmptyState ? t('screens.myShop.activeListing') : t('screens.myShop.emptyTitle')}
+                title={showEmptyState ? t('dashboard.activeListings') : t('screens.myShop.emptyTitle')}
               >
-                {showEmptyState ? t('screens.myShop.activeListing') : t('screens.myShop.emptyTitle')}
+                {showEmptyState ? t('dashboard.activeListings') : t('screens.myShop.emptyTitle')}
               </button>
             </div>
           </div>
@@ -398,24 +440,21 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                 </span>
               </a>
             </div>
-
-            {/* Sales Trends Chart */}
-            <ArtisanTrendsChart data={mockMonthlyTrends} language={activeLang} />
           </section>
         ) : (
           /* CASE 2: ACTIVE SHOP WITH LISTINGS */
           <section aria-label="Active Shop Listings" className="space-y-4 animate-fade-in">
-            {/* 3 Metric Summary Cards */}
+            {/* FIX 2: 3 Metric Summary Cards (Kept as requested) */}
             <div className="grid grid-cols-3 gap-2.5">
               <div className="bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-3 text-center space-y-1 shadow-xs">
                 <div className="w-7 h-7 rounded-full bg-[#E2ECE6] text-[#2D5A43] mx-auto flex items-center justify-center text-xs">
                   🏺
                 </div>
                 <div className="font-display font-extrabold text-xl text-[#201A18]">
-                  {products.length}
+                  {uniqueProducts.length}
                 </div>
                 <div className="text-xs font-bold text-[#201A18] leading-tight">
-                  {t('screens.myShop.activeListing')}
+                  {t('dashboard.activeListings')}
                 </div>
               </div>
 
@@ -427,7 +466,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                   ₹13,500
                 </div>
                 <div className="text-xs font-bold text-[#201A18] leading-tight">
-                  {t('screens.myShop.totalSales')}
+                  {t('dashboard.directEarnings')}
                 </div>
               </div>
 
@@ -439,22 +478,64 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                   15
                 </div>
                 <div className="text-xs font-bold text-[#201A18] leading-tight">
-                  {t('screens.myShop.queries')}
+                  {t('dashboard.inquiries')}
                 </div>
               </div>
             </div>
 
-            {/* Monthly Sales Trends */}
-            <ArtisanTrendsChart data={mockMonthlyTrends} language={activeLang} />
+            {/* FIX 2 & FIX 4: "Mar (Mar 2026)" earnings card with localized seasonal badge (Chart removed) */}
+            <div
+              id="artisan-mar-earnings-card"
+              className="bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-4 shadow-xs space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-display font-bold text-base text-[#201A18]">
+                    {t('dashboard.marEarnings')}
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#7B5500] border border-[#E5A93C]/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-[#E5A93C]" />
+                  <span>{t('dashboard.seasonalBadge')}</span>
+                </span>
+              </div>
 
-            {/* Products Section Header */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E3D5C5]/70">
+                <div className="bg-[#FAF6F0] rounded-xl p-2.5">
+                  <div className="text-[10px] text-[#5E534D] font-bold">
+                    {t('dashboard.directEarnings')}
+                  </div>
+                  <div className="font-display font-extrabold text-base text-[#9C3D25] mt-0.5">
+                    ₹13,500
+                  </div>
+                </div>
+                <div className="bg-[#FAF6F0] rounded-xl p-2.5">
+                  <div className="text-[10px] text-[#5E534D] font-bold">
+                    {t('screens.trends.views')}
+                  </div>
+                  <div className="font-display font-extrabold text-base text-[#2D5A43] mt-0.5">
+                    590
+                  </div>
+                </div>
+                <div className="bg-[#FAF6F0] rounded-xl p-2.5">
+                  <div className="text-[10px] text-[#5E534D] font-bold">
+                    {t('screens.trends.orders')}
+                  </div>
+                  <div className="font-display font-extrabold text-base text-[#201A18] mt-0.5">
+                    15
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* FIX 1: Products Section Header */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
                 <h2 className="font-display font-bold text-base text-[#201A18]">
-                  {t('screens.myShop.myProducts')}
+                  {t('dashboard.myProducts')}
                 </h2>
                 <span className="text-xs font-bold bg-[#E3D5C5] text-[#201A18] px-2 py-0.5 rounded-full">
-                  {products.length}
+                  {uniqueProducts.length}
                 </span>
                 {isLoading && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-[#9C3D25] bg-[#FDF1EC] px-2 py-0.5 rounded-full border border-[#f3cec4]">
@@ -467,7 +548,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
               <button
                 id="btn-listen-products-summary"
                 onClick={() =>
-                  speakAloud(`${t('screens.myShop.myProducts')}: ${products.length} ${t('screens.myShop.activeListing')}.`, {
+                  speakAloud(`${t('dashboard.myProducts')}: ${uniqueProducts.length} ${t('dashboard.activeListings')}.`, {
                     lang: speechLang,
                   })
                 }
@@ -478,9 +559,9 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
               </button>
             </div>
 
-            {/* Product Grid */}
+            {/* FIX 1: Deduplicated Product Grid */}
             <div className="grid grid-cols-2 gap-3">
-              {products.slice(0, 2).map((prod) => (
+              {uniqueProducts.map((prod) => (
                 <div
                   key={prod.id}
                   id={`product-card-${prod.id}`}
@@ -489,7 +570,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                 >
                   <div className="relative aspect-square bg-[#F4EBE1]">
                     <img
-                      src={prod.images[0]}
+                      src={prod.images?.[0] || prod.imageUrl}
                       alt={prod.title}
                       className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                     />
@@ -521,7 +602,7 @@ export const MyShopScreen: React.FC<MyShopScreenProps> = ({
                       {prod.title}
                     </div>
                     <div className="text-[10px] text-[#6B605B] truncate">
-                      {prod.titleEnglish}
+                      {prod.titleEnglish || prod.title}
                     </div>
                     <div className="flex items-center justify-between pt-1">
                       <div>

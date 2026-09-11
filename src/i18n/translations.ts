@@ -473,7 +473,8 @@ export const translations = {
         "helpDeskSub": "Toll-free voice assistance for artisans",
         "callSupport": "Call Artisan Support",
         "myProducts": "My Listed Crafts",
-        "audioGuide": "Listen to Shop Guide"
+        "audioGuide": "Listen to Shop Guide",
+        "seasonalBadge": "Holi Festival & New Collection"
       },
       "addProduct": {
         "title": "Add Product",
@@ -630,6 +631,15 @@ export const translations = {
         "views": "Product Views",
         "totalEarnings": "Total Direct Income"
       }
+    },
+    "dashboard": {
+      "namaste": "Namaste, {name}",
+      "seasonalBadge": "Holi Festival & New Collection",
+      "marEarnings": "Mar (Mar 2026)",
+      "activeListings": "Active Listings",
+      "directEarnings": "Direct Earnings",
+      "inquiries": "Inquiries",
+      "myProducts": "My Listed Crafts"
     }
   },
   "hi": {
@@ -1063,7 +1073,8 @@ export const translations = {
         "helpDeskSub": "कारीगरों के लिए टोल-फ्री आवाज़ सहायता",
         "callSupport": "कारीगर सहायता को कॉल करें",
         "myProducts": "मेरे सूचीबद्ध शिल्प",
-        "audioGuide": "दुकान मार्गदर्शिका सुनें"
+        "audioGuide": "दुकान मार्गदर्शिका सुनें",
+        "seasonalBadge": "होली उत्सव एवं नवीन संग्रह"
       },
       "addProduct": {
         "title": "नया उत्पाद जोड़ें",
@@ -1220,6 +1231,15 @@ export const translations = {
         "views": "उत्पाद देखे गए",
         "totalEarnings": "कुल प्रत्यक्ष आय"
       }
+    },
+    "dashboard": {
+      "namaste": "नमस्ते, {name}",
+      "seasonalBadge": "होली उत्सव एवं नवीन संग्रह",
+      "marEarnings": "मार्च (Mar 2026)",
+      "activeListings": "सक्रिय उत्पाद",
+      "directEarnings": "कुल आय",
+      "inquiries": "पूछताछ",
+      "myProducts": "मेरे सूचीबद्ध हस्तशिल्प"
     }
   },
   "te": {
@@ -1653,7 +1673,8 @@ export const translations = {
         "helpDeskSub": "కళాకారుల కోసం ఉచిత వాయిస్ సహాయం",
         "callSupport": "కళాకారుల సహాయానికి కాల్ చేయండి",
         "myProducts": "నా ఉత్పత్తులు",
-        "audioGuide": "దుకాణ గైడ్ వినండి"
+        "audioGuide": "దుకాణ గైడ్ వినండి",
+        "seasonalBadge": "హోళీ పండుగ & కొత్త సేకరణ"
       },
       "addProduct": {
         "title": "వస్తువును జోడించండి",
@@ -1810,6 +1831,15 @@ export const translations = {
         "views": "చూసిన వారి సంఖ్య",
         "totalEarnings": "మొత్తం ప్రత్యక్ష ఆదాయం"
       }
+    },
+    "dashboard": {
+      "namaste": "నమస్తే, {name}",
+      "seasonalBadge": "హోళీ పండుగ & కొత్త సేకరణ",
+      "marEarnings": "మార్చి (Mar 2026)",
+      "activeListings": "క్రియాశీల ఉత్పత్తులు",
+      "directEarnings": "ప్రత్యక్ష ఆదాయం",
+      "inquiries": "విచారణలు",
+      "myProducts": "నా చేతివృత్తులు"
     }
   },
   "ta": {
@@ -2243,7 +2273,8 @@ export const translations = {
         "helpDeskSub": "கைவினைஞர்களுக்கான இலவச குரல் உதவி",
         "callSupport": "உதவி மையத்தை அழைக்கவும்",
         "myProducts": "எனது கைவினைப் பொருட்கள்",
-        "audioGuide": "கடை வழிகாட்டியை கேட்கவும்"
+        "audioGuide": "கடை வழிகாட்டியை கேட்கவும்",
+        "seasonalBadge": "ஹோலி திருவிழா & புதிய தொகுப்பு"
       },
       "addProduct": {
         "title": "பொருளைச் சேர்க்கவும்",
@@ -2400,6 +2431,15 @@ export const translations = {
         "views": "பார்த்தவர்களின் எண்ணிக்கை",
         "totalEarnings": "மொத்த நேரடி வருமானம்"
       }
+    },
+    "dashboard": {
+      "namaste": "வணக்கம், {name}",
+      "seasonalBadge": "ஹோலி திருவிழா & புதிய தொகுப்பு",
+      "marEarnings": "மார்ச் (Mar 2026)",
+      "activeListings": "செயலில் உள்ள தயாரிப்புகள்",
+      "directEarnings": "நேரடி வருவாய்",
+      "inquiries": "விசாரணைகள்",
+      "myProducts": "என் கைவினைப்பொருட்கள்"
     }
   },
   "mr": {
@@ -2833,7 +2873,8 @@ export const translations = {
         "helpDeskSub": "कारागिरांसाठी टोल-फ्री व्हॉईस मदत",
         "callSupport": "कारागीर मदतीला कॉल करा",
         "myProducts": "माझ्या हस्तकला वस्तू",
-        "audioGuide": "दुकान मार्गदर्शिका ऐका"
+        "audioGuide": "दुकान मार्गदर्शिका ऐका",
+        "seasonalBadge": "होळी उत्सव आणि नवीन संग्रह"
       },
       "addProduct": {
         "title": "नवीन वस्तू जोडा",
@@ -2990,6 +3031,15 @@ export const translations = {
         "views": "उत्पादन पाहिले",
         "totalEarnings": "एकूण थेट उत्पन्न"
       }
+    },
+    "dashboard": {
+      "namaste": "नमस्ते, {name}",
+      "seasonalBadge": "होळी उत्सव आणि नवीन संग्रह",
+      "marEarnings": "मार्च (Mar 2026)",
+      "activeListings": "सक्रिय उत्पादने",
+      "directEarnings": "थेट उत्पन्न",
+      "inquiries": "चौकशी",
+      "myProducts": "माझी हस्तकला"
     }
   },
   "or": {
@@ -3423,7 +3473,8 @@ export const translations = {
         "helpDeskSub": "କାରିଗରମାନଙ୍କ ପାଇଁ ମାଗଣା ଭଏସ୍ ସହାୟତା",
         "callSupport": "କାରିଗର ସହାୟତାକୁ କଲ୍ କରନ୍ତୁ",
         "myProducts": "ମୋର ହସ୍ତଶିଳ୍ପ ସାମଗ୍ରୀ",
-        "audioGuide": "ଦୋକାନ ନିର୍ଦ୍ଦେଶିକା ଶୁଣନ୍ତୁ"
+        "audioGuide": "ଦୋକାନ ନିର୍ଦ୍ଦେଶିକା ଶୁଣନ୍ତୁ",
+        "seasonalBadge": "ହୋଲି ଉତ୍ସବ ଏବଂ ନୂତନ ସଂଗ୍ରହ"
       },
       "addProduct": {
         "title": "ନୂତନ ସାମଗ୍ରୀ ଯୋଡନ୍ତୁ",
@@ -3580,6 +3631,15 @@ export const translations = {
         "views": "ଦେଖାଯାଇଥିବା ସାମଗ୍ରୀ",
         "totalEarnings": "ମୋଟ ପ୍ରତ୍ୟକ୍ଷ ଆୟ"
       }
+    },
+    "dashboard": {
+      "namaste": "ନମସ୍କାର, {name}",
+      "seasonalBadge": "ହୋଲି ଉତ୍ସବ ଏବଂ ନୂତନ ସଂଗ୍ରହ",
+      "marEarnings": "ମାର୍ଚ୍ଚ (Mar 2026)",
+      "activeListings": "ସକ୍ରିୟ ଉତ୍ପାଦ",
+      "directEarnings": "ସିଧାସଳଖ ଆୟ",
+      "inquiries": "ଅନୁସନ୍ଧାନ",
+      "myProducts": "ମୋର ହସ୍ତଶିଳ୍ପ"
     }
   }
 };
