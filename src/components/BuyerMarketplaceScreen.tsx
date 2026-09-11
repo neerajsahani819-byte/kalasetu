@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Mic,
@@ -14,11 +14,26 @@ import {
   Loader2,
   ShoppingBag,
   X,
+  MapPin,
+  Navigation,
+  Check,
+  Compass,
 } from 'lucide-react';
-import { CraftProduct, UserRole, AuthUser } from '../types';
+import { CraftProduct, UserRole, AuthUser, UserLocation, NearbyArtisanSummary } from '../types';
 import { KalaSetuLogo } from './KalaSetuLogo';
 import { speakAloud } from '../utils/audioService';
 import { useLanguage, getSpeechLangCode } from '../i18n/LanguageContext';
+import {
+  haversineDistance,
+  requestBrowserLocation,
+  getSavedBuyerLocation,
+  saveBuyerLocation,
+  DEFAULT_BUYER_LOCATION,
+  INDIAN_CITIES_PRESETS,
+  CityPreset,
+} from '../utils/locationService';
+import { updateUserLocationInFirestore } from '../services/firestoreService';
+import { ARTISANS_CATALOG } from '../data/mockData';
 
 export const searchProducts = (products: CraftProduct[], query: string): CraftProduct[] => {
   if (!query || !query.trim()) return products;
@@ -127,6 +142,96 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isPlayingAudioTour, setIsPlayingAudioTour] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const [buyerLocation, setBuyerLocation] = useState<UserLocation>(() => {
+    return getSavedBuyerLocation() || DEFAULT_BUYER_LOCATION;
+  });
+  const [distanceFilter, setDistanceFilter] = useState<'all' | '0-25' | '25-50' | '50+'>('all');
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Request browser geolocation on first marketplace visit if not yet saved
+  useEffect(() => {
+    const saved = getSavedBuyerLocation();
+    if (!saved) {
+      requestBrowserLocation()
+        .then((loc) => {
+          setBuyerLocation(loc);
+          if (currentUser?.id) {
+            updateUserLocationInFirestore(currentUser.id, loc).catch(() => {});
+          }
+        })
+        .catch(() => {
+          saveBuyerLocation(DEFAULT_BUYER_LOCATION);
+          setBuyerLocation(DEFAULT_BUYER_LOCATION);
+        });
+    } else if (currentUser?.id && !currentUser.location) {
+      updateUserLocationInFirestore(currentUser.id, saved).catch(() => {});
+    }
+  }, [currentUser]);
+
+  // Real-time calculation of distances for all artisans using Haversine formula
+  const artisansWithDistance = useMemo(() => {
+    return ARTISANS_CATALOG.map((artisan) => {
+      const dist = haversineDistance(
+        buyerLocation.lat,
+        buyerLocation.lng,
+        artisan.coordinates.lat,
+        artisan.coordinates.lng
+      );
+      return {
+        ...artisan,
+        distanceKm: dist,
+      };
+    }).sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
+  }, [buyerLocation]);
+
+  // Filter artisans by distance band: 0-25 km, 25-50 km, 50+ km, or all
+  const filteredNearbyArtisans = useMemo(() => {
+    return artisansWithDistance.filter((artisan) => {
+      const d = artisan.distanceKm ?? 999999;
+      if (distanceFilter === '0-25') return d <= 25;
+      if (distanceFilter === '25-50') return d > 25 && d <= 50;
+      if (distanceFilter === '50+') return d > 50;
+      return true;
+    });
+  }, [artisansWithDistance, distanceFilter]);
+
+  const handleSelectCityPreset = (preset: CityPreset) => {
+    const newLoc: UserLocation = {
+      lat: preset.lat,
+      lng: preset.lng,
+      city: preset.name,
+      state: preset.state,
+      source: 'manual',
+      updatedAt: new Date().toISOString(),
+    };
+    setBuyerLocation(newLoc);
+    saveBuyerLocation(newLoc);
+    if (currentUser?.id) {
+      updateUserLocationInFirestore(currentUser.id, newLoc).catch(() => {});
+    }
+    setIsLocationModalOpen(false);
+    setLocationError(null);
+  };
+
+  const handleUseGPS = async () => {
+    setIsLocating(true);
+    setLocationError(null);
+    try {
+      const loc = await requestBrowserLocation();
+      setBuyerLocation(loc);
+      if (currentUser?.id) {
+        updateUserLocationInFirestore(currentUser.id, loc).catch(() => {});
+      }
+      setIsLocationModalOpen(false);
+    } catch (err: any) {
+      setLocationError(err?.message || 'Unable to retrieve GPS coordinates. Please select your city from the list below.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   const filterChips = [
     { id: 'all', label: t('screens.marketplace.filterAll'), icon: '✨' },
@@ -367,8 +472,185 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
           </div>
         </section>
 
+        {/* Location Bar & Quick City Switcher */}
+        <section
+          aria-label="Buyer Location Bar"
+          className="bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-3 flex items-center justify-between shadow-2xs"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-[#FDF1EC] text-[#9C3D25] flex items-center justify-center flex-shrink-0">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] text-[#6B605B] font-medium leading-none">
+                {t('marketplace.yourLocation') || 'Your Location'}
+              </div>
+              <div className="text-xs font-bold text-[#201A18] truncate mt-0.5">
+                {buyerLocation.city}, {buyerLocation.state}
+              </div>
+            </div>
+          </div>
+
+          <button
+            id="btn-change-location"
+            onClick={() => setIsLocationModalOpen(true)}
+            className="text-xs font-bold text-[#9C3D25] hover:text-[#802913] bg-[#FAF6F0] hover:bg-[#F4EBE1] border border-[#E3D5C5] px-3 py-1.5 rounded-full transition-all active:scale-95 flex items-center gap-1 flex-shrink-0 cursor-pointer shadow-2xs"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>{t('marketplace.changeLocation') || 'Change'}</span>
+          </button>
+        </section>
+
+        {/* Nearby Artisans Section (0-25 km, 25-50 km, 50+ km) */}
+        <section
+          id="section-nearby-artisans"
+          aria-label="Nearby Artisans"
+          className="space-y-3 pt-1"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#2D5A43]" />
+              <h2 className="font-display font-bold text-base text-[#201A18]">
+                {t('marketplace.nearbyArtisans') || 'Nearby Artisans'}
+              </h2>
+            </div>
+            <span className="text-xs font-bold text-[#2D5A43] bg-[#E2ECE6] px-2.5 py-0.5 rounded-full border border-[#bceecf]">
+              {filteredNearbyArtisans.length}
+            </span>
+          </div>
+
+          {/* Distance Filter Chips: All, 0-25 km, 25-50 km, 50+ km */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {[
+              { id: 'all', label: 'All Distances' },
+              { id: '0-25', label: '📍 0–25 km' },
+              { id: '25-50', label: '🚗 25–50 km' },
+              { id: '50+', label: '🌐 50+ km' },
+            ].map((tab) => {
+              const isActive = distanceFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  id={`btn-distance-tab-${tab.id}`}
+                  onClick={() => setDistanceFilter(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border active:scale-95 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#2D5A43] text-white border-[#2D5A43] shadow-xs'
+                      : 'bg-white text-[#201A18] border-[#E3D5C5] hover:border-[#8A726C]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Nearby Artisans Horizontal Card Feed */}
+          {filteredNearbyArtisans.length === 0 ? (
+            <div className="bg-white border border-[#E3D5C5] rounded-2xl p-6 text-center text-xs text-[#6B605B] space-y-2">
+              <p>{t('marketplace.noNearbyInBand') || 'No artisans found in this distance band.'}</p>
+              <button
+                type="button"
+                onClick={() => setDistanceFilter('all')}
+                className="text-[#9C3D25] font-bold underline hover:text-[#802913] cursor-pointer"
+              >
+                View All Artisans ({artisansWithDistance.length})
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 pt-0.5 no-scrollbar snap-x">
+              {filteredNearbyArtisans.map((artisan) => {
+                const dist = artisan.distanceKm ?? 0;
+                const isVeryClose = dist <= 25;
+                const isMidClose = dist > 25 && dist <= 50;
+
+                const badgeClass = isVeryClose
+                  ? 'bg-[#E2ECE6] text-[#2D5A43] border-[#bceecf]'
+                  : isMidClose
+                  ? 'bg-[#FEF3C7] text-[#7B5500] border-[#FDE68A]'
+                  : 'bg-[#F4EBE1] text-[#6B605B] border-[#E3D5C5]';
+
+                return (
+                  <article
+                    key={artisan.id}
+                    id={`nearby-artisan-card-${artisan.id}`}
+                    onClick={() => onOpenArtisanProfile(artisan.id)}
+                    className="min-w-[245px] max-w-[245px] bg-[#FFFFFF] border border-[#E3D5C5] rounded-2xl p-3 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between flex-shrink-0 snap-start"
+                  >
+                    <div className="space-y-2">
+                      {/* Top Bar with Distance Badge */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${badgeClass}`}
+                        >
+                          <span>📍</span>
+                          <span>{dist === 0 ? '0 km (Local)' : `${dist} km away`}</span>
+                        </span>
+
+                        {artisan.giTagProtected && (
+                          <span className="text-[10px] font-bold bg-[#FDF1EC] text-[#9C3D25] px-1.5 py-0.5 rounded-full border border-[#f3cec4]">
+                            GI Certified
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Artisan Profile Info */}
+                      <div className="flex items-center gap-2.5 pt-1">
+                        <img
+                          src={artisan.avatarUrl}
+                          alt={artisan.name}
+                          className="w-11 h-11 rounded-full object-cover border-2 border-[#9C3D25]/30 flex-shrink-0 bg-[#F4EBE1]"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-display font-bold text-xs text-[#201A18] truncate">
+                            {artisan.name}
+                          </h4>
+                          <p className="text-[11px] text-[#5E534D] truncate font-medium">
+                            {artisan.craft}
+                          </p>
+                          <p className="text-[10px] text-[#8A726C] truncate">
+                            {artisan.region}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-3 mt-2 border-t border-[#F4EBE1]">
+                      <button
+                        id={`btn-nearby-profile-${artisan.id}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenArtisanProfile(artisan.id);
+                        }}
+                        className="bg-[#FAF6F0] hover:bg-[#F4EBE1] active:scale-95 text-[#201A18] text-[10px] font-bold py-1.5 rounded-lg border border-[#E3D5C5] transition-colors cursor-pointer text-center"
+                      >
+                        {t('common.artisan')}
+                      </button>
+
+                      <button
+                        id={`btn-nearby-chat-${artisan.id}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenChatWithArtisan(artisan.name, artisan.craft);
+                        }}
+                        className="bg-[#9C3D25] hover:bg-[#802913] active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        <span>{t('screens.marketplace.chat')}</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* Section Heading with Results Count */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#9C3D25]" />
             <h2 className="font-display font-bold text-base text-[#201A18]">
@@ -695,6 +977,105 @@ export const BuyerMarketplaceScreen: React.FC<BuyerMarketplaceScreenProps> = ({
           </div>
         </section>
       </main>
+
+      {/* Location Selector Modal */}
+      {isLocationModalOpen && (
+        <div
+          id="modal-location-selector"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setIsLocationModalOpen(false)}
+        >
+          <div
+            className="bg-[#FAF6F0] border border-[#E3D5C5] rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#9C3D25] text-white flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <h3 className="font-display font-bold text-base text-[#201A18]">
+                  {t('marketplace.selectCityModal') || 'Select Your Location'}
+                </h3>
+              </div>
+              <button
+                id="btn-close-location-modal"
+                type="button"
+                onClick={() => setIsLocationModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-white text-[#5E534D] hover:text-[#201A18] flex items-center justify-center border border-[#E3D5C5] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* GPS Detection Button */}
+            <button
+              id="btn-use-gps-location"
+              type="button"
+              disabled={isLocating}
+              onClick={handleUseGPS}
+              className="w-full bg-[#2D5A43] hover:bg-[#1E3F2F] text-white py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-50 cursor-pointer active:scale-95"
+            >
+              {isLocating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Navigation className="w-4 h-4" />
+              )}
+              <span>
+                {isLocating
+                  ? t('common.loading')
+                  : t('marketplace.useGps') || 'Detect My Current GPS Location'}
+              </span>
+            </button>
+
+            {locationError && (
+              <div className="text-xs text-[#9C3D25] bg-[#FDF1EC] p-2.5 rounded-xl border border-[#f3cec4]">
+                {locationError}
+              </div>
+            )}
+
+            {/* Indian Craft Cities & Regions List */}
+            <div className="space-y-2 pt-1">
+              <div className="text-xs font-bold text-[#5E534D]">
+                Select Craft Hub or City:
+              </div>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {INDIAN_CITIES_PRESETS.map((preset) => {
+                  const isCurrent = buyerLocation.city === preset.name;
+                  return (
+                    <button
+                      key={preset.id}
+                      id={`btn-select-city-${preset.id}`}
+                      type="button"
+                      onClick={() => handleSelectCityPreset(preset)}
+                      className={`w-full text-left p-2.5 rounded-xl text-xs transition-all border flex items-center justify-between cursor-pointer ${
+                        isCurrent
+                          ? 'bg-white border-[#9C3D25] text-[#9C3D25] font-bold shadow-xs'
+                          : 'bg-white/70 hover:bg-white border-[#E3D5C5] text-[#201A18]'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold flex items-center gap-1.5">
+                          <span>{preset.name}</span>
+                          <span className="text-[10px] font-normal text-[#6B605B]">
+                            ({preset.state})
+                          </span>
+                        </div>
+                        {preset.craftHighlight && (
+                          <div className="text-[10px] text-[#6B605B] mt-0.5">
+                            ✨ {preset.craftHighlight}
+                          </div>
+                        )}
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 text-[#9C3D25]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

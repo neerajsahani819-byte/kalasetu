@@ -45,6 +45,39 @@ export interface CraftProduct {
   voiceTranscript?: string;
 }
 
+export interface UserLocation {
+  lat: number;
+  lng: number;
+  city: string;
+  state: string;
+  source?: 'geolocation' | 'manual';
+  updatedAt?: string;
+}
+
+export interface ArtisanLocation {
+  lat: number;
+  lng: number;
+  city: string;
+  state: string;
+}
+
+export interface NearbyArtisanSummary {
+  id: string;
+  name: string;
+  englishName: string;
+  craft: string;
+  craftHindi: string;
+  region: string;
+  avatarUrl: string;
+  giTagProtected: boolean;
+  giTagName?: string;
+  experienceYears: number;
+  coordinates: { lat: number; lng: number };
+  distanceKm?: number;
+  sampleProductImage?: string;
+  productsCount?: number;
+}
+
 export interface ArtisanProfileData {
   id: string;
   name: string;
@@ -56,6 +89,8 @@ export interface ArtisanProfileData {
   avatarUrl: string;
   giTagProtected: boolean;
   giTagName: string;
+  coordinates?: { lat: number; lng: number };
+  distanceKm?: number;
   award: {
     title: string;
     year: string;
@@ -96,6 +131,7 @@ export interface AuthUser {
   joinedDate: string;
   bio?: string;
   hasCompletedOnboarding?: boolean;
+  location?: UserLocation;
 }
 
 export interface FirestoreUser {
@@ -111,6 +147,7 @@ export interface FirestoreUser {
   joinedDate?: string;
   bio?: string;
   hasCompletedOnboarding?: boolean;
+  location?: UserLocation;
 }
 
 export interface FirestoreMessage {

@@ -12,7 +12,7 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db, uploadProductImage } from './firebase';
-import { CraftProduct, AuthUser, FirestoreUser, FirestoreMessage, UserAccountRecord, MarketplaceOrder } from '../types';
+import { CraftProduct, AuthUser, FirestoreUser, FirestoreMessage, UserAccountRecord, MarketplaceOrder, UserLocation } from '../types';
 import { mockCraftProducts } from '../data/mockData';
 import { getRegisteredUsers } from '../utils/authService';
 
@@ -400,6 +400,22 @@ export async function saveUserToFirestore(user: AuthUser | FirestoreUser): Promi
   };
 
   await setDoc(doc(db, 'users', user.id), userDoc, { merge: true });
+}
+
+/**
+ * Updates a buyer's saved location in their Firestore user profile
+ */
+export async function updateUserLocationInFirestore(
+  userId: string,
+  location: UserLocation
+): Promise<void> {
+  try {
+    const docRef = doc(db, 'users', userId);
+    await setDoc(docRef, { location }, { merge: true });
+    console.log(`[Firestore] User location updated for ${userId}:`, location.city);
+  } catch (error) {
+    console.warn('[Firestore] Error saving user location to Firestore:', error);
+  }
 }
 
 /**
