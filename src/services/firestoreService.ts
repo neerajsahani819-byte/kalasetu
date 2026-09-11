@@ -16,7 +16,7 @@ import { CraftProduct, AuthUser, FirestoreUser, FirestoreMessage, UserAccountRec
 import { mockCraftProducts } from '../data/mockData';
 import { getRegisteredUsers } from '../utils/authService';
 
-const MIGRATION_KEY = 'kalasetu_firestore_migrated_v2';
+const MIGRATION_KEY = 'kalasetu_firestore_migrated_v5';
 const PRODUCTS_CACHE_KEY = 'kalasetu_firestore_products_cache';
 const MESSAGES_CACHE_KEY = 'kalasetu_firestore_messages_cache';
 const ORDERS_CACHE_KEY = 'kalasetu_firestore_orders_cache';

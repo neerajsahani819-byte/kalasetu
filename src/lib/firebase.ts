@@ -32,7 +32,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID && import.meta.env.VITE_FIREBASE_DATABASE_ID !== '(default)' 
+  ? import.meta.env.VITE_FIREBASE_DATABASE_ID 
+  : undefined;
+
+console.log('[Firebase] Connected to project:', import.meta.env.VITE_FIREBASE_PROJECT_ID);
 
 // Initialize or reuse Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
