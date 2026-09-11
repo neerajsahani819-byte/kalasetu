@@ -1,7 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-console.log("[Gemini] API key loaded:", !!apiKey);
+const apiKey =
+  import.meta.env.VITE_GEMINI_API_KEY ||
+  (import.meta.env as any)?.VITE_GEMINI_API_KEY ||
+  '';
+
+console.log(
+  '[Gemini] API key loaded:',
+  !!apiKey,
+  'starts with:',
+  apiKey ? apiKey.substring(0, 5) : 'none'
+);
+console.log(
+  '[Gemini] All env keys:',
+  Object.keys(import.meta.env).filter((k) => k.includes('GEMINI'))
+);
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
